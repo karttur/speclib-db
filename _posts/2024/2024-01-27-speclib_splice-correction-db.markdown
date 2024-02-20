@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Model preprocessing schema
-categories: libspec-db
+categories: libspec-db-todo
 excerpt: "Design and setup for schema model splicing, xspectre postgreSQL spectral library"
 tags:
   - db

@@ -16,11 +16,11 @@ share: true
 
 ## Introduction
 
-In the xSpectre database the actual spectral (or probe) measurements are stored in the schema **scan**. This post contains the general design of the schema **scan** for the xspectre scan library postgreSQL database. The design is written in the [Database Markup Language (DBML)](https://dbml.dbdiagram.io/home/). For visualisation of the DBML code I have used the semi free tool [dbdiagram](https://dbdiagram.io/?utm_source=dbml).
+In the xSpectre database the actual spectral (or probe) measurements are stored in the schema **scan**. This post contains the general design of the schema **scan** for the spectral library and processing system postgreSQL database. The design is written in the [Database Markup Language (DBML)](https://dbml.dbdiagram.io/home/). For visualisation of the DBML code I have used the semi free tool [dbdiagram](https://dbdiagram.io/?utm_source=dbml).
 
 ## Purpose of the scan schema
 
-The purpose of the **scan** schema is to store recordings from a [xspectrolum<b>+</b>](https://www.environimagine.com/spectrometerv080.html) spectrometer linked to a sample and a campaign. Each scan, regardless of the sensor or probe, is registered as a signal mean and signal standard deviation (std). The default setting for scanning with the [xspectrolum<b>+</b>](https://www.environimagine.com/spectrometerv080.html) is to always run 6 individual scans and then store the results as mean and std signals.
+The purpose of the **scan** schema is to store recordings from a [xspectrolum<b>+</b>](https://www.environimagine.com/spectrometerv080.html) spectrometer linked to a sample and a campaign. Each scan, regardless of the sensor or probe, is registered as a signal mean and signal standard deviation (std).
 
 To keep track of the sample, campaign and individual instrument set-up for each scan, the **scan** schema is linked to uuid's in the schemas **spectrometers**, **probes** and **samples**.
 
@@ -49,9 +49,9 @@ The remaining 8 tables include:
 - public.reflectance (mean and std of diffuse reflectance signals),
 - public.transmissivity (mean and std of transmissivity signals),
 - public.reflectance (mean and std of  fluorescence signals),
-- public.reflectance (mean and std of Raman signals),
-- public.scanprobe (links the scan to the probe of the individual instrument, defines the sample preparation and any mode)
-- public.scanrecord (stores the mean and std of the probe register)
+- public.raman (mean and std of Raman signals),
+- public.scanprobe (links the scan to the probe of the individual instrument, defines the sample preparation and any mode), and
+- public.scanrecord (stores the mean and std of the probe register).
 
 ### Illustration of the scan schema
 

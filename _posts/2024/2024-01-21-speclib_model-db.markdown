@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Scan schema
+title: Model schema
 categories: libspec-db
 excerpt: "Design and setup for schema model, xspectre postgreSQL spectral library"
 tags:
@@ -16,21 +16,22 @@ share: true
 
 ## Introduction
 
-The **model** schema functions like a root for the definition of machine learning modeling and predicting of properties from spectral data. The **model** schema itself contains tables for
+The **model** schema functions like a root for the definition of Machine Learning (ML) modelling and predicting of properties from spectral data. The **model** schema itself contains tables for
 - metadata defining a model,
 - process steps to include for
- setting up model testing and validation, and
+ setting up model testing and validation,
+- model results, and
 - validated models.
 
-Tables defining the parameter settings for model testing and validation, covariate correction and selection, plotting and hyperarameter tuning are defined in separate scehemas (see below).
+Tables defining the covariate correction and selection, parameter settings for model testing and validation, plotting and hyperparameter tuning are defined in separate schemas (see below).
 
-This post contains the general design of the schema **model** for the xspectre scan library postgreSQL database. The design is written in the [Database Markup Language (DBML)](https://dbml.dbdiagram.io/home/). For visualisation of the DBML code I have used the semi free tool [dbdiagram](https://dbdiagram.io/?utm_source=dbml).
+This post contains the general design of the schema **model** for the xspectra library and processing system postgreSQL database. The design is written in the [Database Markup Language (DBML)](https://dbml.dbdiagram.io/home/). For visualisation of the DBML code I have used the semi free tool [dbdiagram](https://dbdiagram.io/?utm_source=dbml).
 
 ## Purpose of the model schema
 
 The purpose of the **model** schema is to
  1. designate a target feature, name, title and campaign for a machine learning (ML) model based on spectral data as covariates,
- 2. to define the framework for creating a spectral ML model for predicting phsyico-chemical properties for a pre-defined target feature,
+ 2. to define the framework for creating a spectral ML model for predicting physico-chemical properties for a target feature,
  3. record the parameterisation and performance of individual models, and
  4. publish validated models.
 
@@ -38,19 +39,20 @@ The tables of the schema include:
 
 - spectralmodel (target feature, name, title, campaign etc),
 - modelinfourl (extended information and url links for each model),
-- spectraprepsteps (boolean options for preparatory steps for transforming, correcting and extracting spectral data),
+- spectraprepsteps (boolean options for preparatory steps for correcting, transforming and extracting spectral data),
 - spectrafitsteps (boolean options for harmonisation, correction and information enhancement of prepared spectral data),
-- featureselectionsteps (boolean options for ML feature selection and [further] dimension reduction)
-- model (hyperparameter settings for best fitted models, reporting of feature importance and model validation)
-- parametertypecode (list of hyperparameters, coding and settings)
-- modelkfoldresults (model statistical performance and plots for best fitted models)
+- featureselectsteps (boolean options for ML feature selection and [further] dimension reduction),
+- modelarguments (hyperparameter settings for best fitted models, reporting of feature importance and model validation),
+- parametertypecode (final model list of hyperparameters and settings, and plots),
+- modelcovariates (final model selected covariates),
+- modelkfoldresults (model statistical performance and plots for best fitted models),
 - modeltraintestresults (model statistical performance and plots for best fitted models), and
-- publishedmodel (models published for independent prediction)
+- publishedmodel (models published for independent prediction).
 
 Each of the optional boolean processes listed in the tables:
 - spectraprepsteps,
 - spectrafitsteps, and
-- featureselectionsteps.
+- featureselectsteps.
 
 are specified in separate tables that then link to a set of other schemas and tables.
 
@@ -92,7 +94,7 @@ Also _standardise_ is a boolean parameter, but if set to true the gain and offse
 
 Principal component analysis (_pca_) is a data compression and information enhancement algorithm. For model formulation and validataion, pca is automatically retrieved from the data after the pre-processing and fitting steps.
 
-### featureselectionsteps
+### featureselectsteps
 
 The pre-processing and fitting steps above can both increase and decrease the number of covariates. If requested, a manual selection of a subset among the surviving covariates can be set. if a manual selection is autorised (by setting the boolean variable _manualfeatureselection_ to _true_), all other feature selections options are forced to _false_. This would typically be done for a final model formulation that is both effective and parsimonious.
 
@@ -110,9 +112,9 @@ For each of these options the actual process and its parameterisation must be se
 Mouse click on the figure to get a larger illustration in a pop-up window.
 
 <figure>
-<a href="../../images/DBML_schema-scan.png">
-<img src="../../images/DBML_schema-scan.png"></a>
-<figcaption>Scan DBML database structure</figcaption>
+<a href="../../images/DBML_schema_model.png">
+<img src="../../images/DBML_schema_model.png"></a>
+<figcaption>Model DBML database structure</figcaption>
 </figure>
 
 ### DBML Code
@@ -126,20 +128,14 @@ Project project_name {
   Note: 'Schema for spectra model library'
 }
 
-Table sample.sample {
-  sampleuuid char(36)
-  campaignuuid char(36)
-  morecolumns char(1)
-}
-
 Table spectralmodel {
   campaignuuid char(36) [pk]
-  subsampleselect char(3) [default:avg]
+  subsampleselectcode char(3) [default:'avg']
   targetfeatureuuid char(36) [pk]
-  targetfeaturemin real [default:0]
-  targetfeaturemax real [default:0]
-  targetfeaturelst TEXT[]
-  regressorcode varchar(8) [pk]
+  targetfeatureminvalue real [default:0]
+  targetfeaturemaxvalue real [default:0]
+  targetfeaturelist TEXT[]
+  regressor varchar(16) [pk]
   edition varchar(16) [pk]
   version char(2) [pk]
   publicitycode char(4)
@@ -149,6 +145,7 @@ Table spectralmodel {
 
 Table subsampleselect {
   subsampleselectcode char[3]
+  subsampleselect char[32]
 }
 // min;max;avg;std;rng;1st,2nd,3rd,4th
 
@@ -156,6 +153,9 @@ Table modelinfourl {
   modeluuid  char(36) [pk]
   modelname varchar(32)
   modeltitle varchar(128)
+  modeldescript TEXT
+  modelrestriction TEXT
+  modeldisclaimer TEXT
   info varchar(255)
   url TEXT  
 }
@@ -179,7 +179,7 @@ Table spectrafitsteps{
   pca boolean
 }
 
-Table featureselectionsteps {
+Table featureselectsteps {
   modeluuid char(36) [pk]
   manualfeatureselection boolean
   globalfeatureselection boolean
@@ -188,7 +188,7 @@ Table featureselectionsteps {
   modelfeatureselection boolean
 }
 
-Table model {
+Table modelarguments {
   modeluuid char(36) [pk]
   hyperparameter varchar(32) [pk]
   parametertypecode char[2]
@@ -212,6 +212,13 @@ Table parametertypecode {
 // il = integerlist; rl = realnumberlist; sl = stringlist
 // in = integeternestdlist, rn = real number nested list
 
+Table modelcovariates {
+  modeluuid  char(36) [pk]
+  spectralbands smallint[]
+  derivatestartbands smallint[]
+  derivateendbands smallint[]
+}
+
 Table modelkfoldresults {
     modeluuid  char(36) [pk]
     rmsetotal real
@@ -228,9 +235,6 @@ Table modelkfoldresults {
     medaefoldedmean real
     r2foldedmean real
     r2foldedsts real
-    spectralbands smallint[]
-    derivatestartbands smallint[]
-    derivateendbands smallint[]
     jsonresults TEXT
     plotresults TEXT
     pickledmodel TEXT
@@ -241,36 +245,31 @@ Table modeltraintestresults {
     rmse real
     r2 real
     rpiq real
-    spectralbands smallint[]
-    derivatestartbands smallint[]
-    derivateendbands smallint[]
     jsonresults TEXT
     pickledmodel TEXT
 }
 
 Table publishedmodel {
-  modeluuid char(36)
-  camapignuuid char(36)
-  useruuid char(36) [pk]
-  modelid char(36) [pk]
-  modelname TEXT
-  modeltite TEXT
-  modeldescript TEXT
-  modelrestriction TEXT
-  modeldisclaimer TEXT
-  targetfeature [pk]
-  regressor [pk]
-  georegion [pk]
-  prepcode [pk]
-  mode [pk]
+  modeluuid char(36) [pk]
   nearestband boolean
   interpolateband boolean
   averagaband boolean
   spectralbands smallint[]
   derivatestartbands smallint[]
   derivateendbands smallint[]
-  pickle TEXT  
+  pickledmodel TEXT  
 }
+Ref: spectralmodel.modeluuid - modelinfourl.modeluuid
+Ref: spectralmodel.subsampleselectcode - subsampleselect.subsampleselectcode
+Ref: spectralmodel.modeluuid - spectraprepsteps.modeluuid
+Ref: spectralmodel.modeluuid - spectrafitsteps.modeluuid
+Ref: spectralmodel.modeluuid - featureselectsteps.modeluuid
+Ref: spectralmodel.modeluuid - modelarguments.modeluuid
+Ref: modelarguments.parametertypecode - parametertypecode.parametertypecode
+Ref: spectralmodel.modeluuid - modelcovariates.modeluuid
+Ref: spectralmodel.modeluuid - modelkfoldresults.modeluuid
+Ref: spectralmodel.modeluuid - modeltraintestresults.modeluuid
+Ref: spectralmodel.modeluuid - publishedmodel.modeluuid
 ```
 
 ## xspeclib code

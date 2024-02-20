@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Target feature selection schema
-categories: libspec-db
+categories: libspec-db-todo
 excerpt: "Design and setup for schema scan, xspectre postgreSQL spectral library"
 tags:
   - db

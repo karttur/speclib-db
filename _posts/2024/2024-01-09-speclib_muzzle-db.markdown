@@ -16,21 +16,21 @@ share: true
 
 ## Introduktion
 
-A muzzle (snout) is the part of the xspectre [xspectrolum<b>+</b>](https://www.environimagine.com/spectrometerv080.html) spectrometer that contains the lamp and where the sample is placed. The muzzle is attached to [xspectrolum<b>+</b>](https://www.environimagine.com/spectrometerv080.html) body using a bayonet mount.
+A muzzle (snout) is the part of the xspectre [xspectrolum<b>+</b>](https://www.environimagine.com/spectrometerv080.html) spectrometer that contains the lamp and where the sample is placed. The muzzle is attached to [xspectrolum<b>+</b>](https://www.environimagine.com/spectrometerv080.html) body, in front of the spectral sensor, using a bayonet mount.
 
-This post contains the general design of the schema **muzzles** for the xspectre spectral library postgreSQL database. The design is written in the [Database Markup Language (DBML)](https://dbml.dbdiagram.io/home/). For visualisation of the DBML code I have used the semi free tool [dbdiagram](https://dbdiagram.io/?utm_source=dbml).
+This post contains the general design of the schema **muzzles** for the xspectre spectral library and processing system. The design is written in the [Database Markup Language (DBML)](https://dbml.dbdiagram.io/home/). For visualisation of the DBML code I have used the semi free tool [dbdiagram](https://dbdiagram.io/?utm_source=dbml).
 
 ## Purpose of the muzzles schema
 
 The purpose of the muzzles schema is to allow any combination of lamp (or lamps), spectral methods (diffuse reflectance, transparency, fluorescence and Raman spectroscopy) and type of sample (solid, liquid, gas or plasma), for defining a muzzle model. To accomplish this, the muzzles schema contain separate tables for both lamp models and muzzle models, a table itemising all individual muzzles and a range of support tables.
 
 Lamps as such can be of 10 main types:
-- laser
-- narrow band LED
-- visible (VIS) broad band LED
-- Near infrared (NIR) broad band LED
+- laser,
+- narrow band LED,
+- visible (VIS) broad band LED,
+- Near infrared (NIR) broad band LED,
 - VIS-NIR broad band LED (combining two LEDs of the two above types),
-- MIR broadband LED
+- MIR broadband LED,
 - Tungsten (Halogen-Tungsten) incandescent bulbs,
 - Halogen incandescent bulbs,
 - Xenon incandescent bulbs, and
@@ -38,12 +38,12 @@ Lamps as such can be of 10 main types:
 
 As there are many producers, models and versions of each type of lamp listed above, there are many lamps available. But only a few of them are really useful. Lamps that are actually used with [xspectrolum<b>+</b>](https://www.environimagine.com/spectrometerv080.html) must be registered in the table _lampmodels_. The _lampmodels_ table is linked to two support lists:
 
-- public.technology (list of technologies used for generating electromagnetic radiation in the lamps),
-- public.lampinfourl (extended information and url links for each lamp model)
+- public.technology (list of technologies used for generating electromagnetic radiation in the lamps), and
+- public.lampinfourl (extended information and url links for each lamp model).
 
-All lamps are mounted in the muzzle via the _xspeclum_ Printed Circuit Board (PCB). The PCB can hold 1 or 2 lamps. The latter is most commonly applied for extending the spectral range of LEDs by combining 2 LEDs, e.g. one LED for VIS and one for NIR. This usually also means that the relative light emission of the two LEDs must be adjusted, which is accomplished by controlling power supply using different resistors. The lamp models, the resistors, the power supply and the PCB version must all be registered in the table _muzzlemodels_ for defining a muzzle.
+All lamps are mounted in the muzzle via the _xspecled_ Printed Circuit Board (PCB). The small PCB can hold 1 or 2 lamps. The latter is most commonly applied for extending the spectral range of LEDs by combining 2 LEDs, e.g. one LED for VIS and one for NIR. This usually also means that the relative light emission of the two LEDs must be adjusted, which is accomplished by controlling power supply using different resistors. The lamp models, the resistors, the power supply and the PCB version must all be registered in the table _muzzlemodels_ for defining a muzzle.
 
-Additionally, the spectral method and the kind of sample the muzzle is built for also needs to be registered with each muzzle model. This information is then transferred to each individual muzzle when assembled. As the memory capacity attached to each _xspeclum_ PCB is limited, the lamp(s), method, state and spectral range of each muzzle model is encoded using an 8-byte string:
+Additionally, the spectral method and the kind of sample the muzzle is built for also needs to be registered with each muzzle model. This information is then transferred to each individual muzzle when assembled. As the memory capacity attached to each _xspecled_ PCB is limited, the lamp(s), method, state and spectral range of each muzzle model is encoded using an 8-byte string:
 
 - 1: sample state,
 - 2: Nr of lamps [1 or 2],
@@ -51,15 +51,15 @@ Additionally, the spectral method and the kind of sample the muzzle is built for
 - 4: lamp type/band, and
 - 5-8: general wavelength band [nm or code]
 
-Code items 1, 3 and 4 are all encoded with a single digit (0-9) and item 2 (Nr of lamps) is naturally also a digit. The encoding of 1, 3 and 4 are listed in support tables:
+Code items 1, 3 and 4 are all encoded with a single digit (0-9) and item 2 (nr of lamps) is naturally also a digit. The encoding of 1, 3 and 4 are listed in the following support tables:
 
-- samplestates,
-- signaltypes (equivalent to spectral method), and
-- lampband
+- _samplestates_,
+- _signaltypes_ (equivalent to spectral method), and
+- _lampband_.
 
-The identification data that is stored in the EEPROM memory of each muzzle is assembled in the table _muzzlecode_ in the _muzzles_ schema. In addition to the identification data in the table _muzzlecode_, also the power requirements (from the table _muzzlemodels_) is transferred to the EEPROM memory of each muzzle when assembled.
+The identification data that is stored in the EEPROM memory of each muzzle is assembled in the table _muzzlecode_. In addition to the identification data, also the power requirements (from the table _muzzlemodels_) is transferred to the EEPROM memory of each muzzle when assembled.
 
-The main table of the _muzzles_ schema is the _muzzles_ table. In this table each copy of any muzzle model is registered using a Universally Unique Identifier (uuid) that is registered in the database and written to the small EEPROM memory on the _xspeclum_ PCB holding the lamp(s) and that is attached to the muzzle. The unique _muzzleuuid_ given to each individual muzzle is automatically connected to a sensor (_sensoruuid_) when used for the first time. The combination of a _sensoruuid_ and a _muzzleuuid_ requires a distinct calibration that is registered both in the database (under the schema [spectrometers](#)) and on the memory of the xspectrolum microcontroller.
+The main table of the **muzzles** schema is the _muzzles_ table. In this table each copy of any muzzle model is registered using a Universally Unique Identifier (uuid) that is registered in the database and written to the small EEPROM memory on the _xspecled_ PCB holding the lamp(s) and that is screwed to the muzzle. The unique _muzzleuuid_ given to each individual muzzle is automatically connected to a sensor (_sensoruuid_) when used for the first time.
 
 ### Illustration of the muzzles schema
 

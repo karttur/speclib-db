@@ -12,7 +12,6 @@ date: '2024-01-13 11:27'
 modified: '2024-01-13 T18:17:25.000Z'
 comments: true
 share: true
-
 ---
 
 ## Introduction
@@ -21,11 +20,11 @@ Observations obtained with xSpectre´s [xspectrolum<b>+</b>](https://www.environ
 
 A campaign is bound to a specific combination of a sensor model and a muzzle model. "Campaigns" for comparing the performance of different sensors and muzzles can be defined, but are more of development projects and not ordinary "campaigns".
 
-This post contains the general design of the schema **campaigns** for the xspectre spectral library postgreSQL database. The design is written in the [Database Markup Language (DBML)](https://dbml.dbdiagram.io/home/). For visualisation of the DBML code I have used the semi free tool [dbdiagram](https://dbdiagram.io/?utm_source=dbml).
+This post contains the general design of the schema **campaigns** for the xspectre spectral library and processing system postgreSQL database. The design is written in the [Database Markup Language (DBML)](https://dbml.dbdiagram.io/home/). For visualisation of the DBML code I have used the semi free tool [dbdiagram](https://dbdiagram.io/?utm_source=dbml).
 
 ## Purpose of the campaigns schema
 
-The purpose of the campaigns schema is to define specific observation tasks centering on a defined substance. A campaign is usually started for building a spectral database for a particular task - like determining the quality of Swedish soils. A campaign is bound to a specific combination of a sensor model (_spectrometermodel_) and a muzzle model (_muzzlemodel_). The campaign can, however apply two, or more, setups (spectromuzzles), as long as they have identical sensorid and muzzleid (but varying (uuids). The actual sensor+muzzle(+probe) used for scanning a sample is registered with each scan; in the [**scan** schema](../speclib_campaign_scan-db).
+The purpose of the campaigns schema is to define specific observation tasks centering on a defined substance. A campaign is usually started with the aim of  building a spectral database for a particular task - like determining the quality of Swedish soils. A campaign is bound to a specific combination of a sensor model (_spectrometermodel_) and a muzzle model (_muzzlemodel_). The campaign can, however apply two, or more, setups (_spectromuzzles_), as long as they have identical sensorid and muzzleid (but varying (uuids). The actual sensor+muzzle(+probe) used for scanning a sample is registered with each scan; in the [**scan**](../speclib_campaign_scan-db) schema.
 
 Apart from the sensorid and muzzleid, _campaign_ attributes include owner, title, label, substance under study etc. A campaign can also have the following boolean dimensions:
 
@@ -35,8 +34,8 @@ Apart from the sensorid and muzzleid, _campaign_ attributes include owner, title
 
 A campaign can include probes. Any number of different probes can be added and be used in conjunction with the spectral scanning. Either for complementing the spectral data or as a means for creating the reference data to predict with the spectral data.
 
-To define campaigns with different set-ups, the **campaigns** schema is divided into 5 tables. Two of the tables
- are supporting lists:
+The **campaigns** schema is divided into 5 tables. Two of the tables
+are supporting lists:
 
 - public.campaigninfourl (extended information and url links for each campaign)
 - public.campaigngeoregion (predefined geographic region names)
@@ -51,7 +50,7 @@ The remaining 3 tables include:
 
 Campaigns need to be possible to organise hierarchically (e.g. parent campaign = red wine; child campaign = Spanish red wine; grand child campaign = Rioja red wines).
 
-Campaigns should also have extended status regarding model readiness, ownership, contribution etc, and for large campaigns with many users there should be the possibilities with using different sensor models and muzzle models (but with the same spectrometer method and overlapping spectral ranges).
+Campaigns should also have extended status regarding model readiness, ownership, contribution etc, and for large campaigns with many users there should be the possibilities with using different sensor and muzzle models (but with the same spectrometer method and overlapping spectral ranges).
 
 ### Illustration of the campaigns schema
 

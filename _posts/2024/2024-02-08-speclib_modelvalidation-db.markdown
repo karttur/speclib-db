@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Scan schema
-categories: libspec-db
+categories: libspec-db-todo
 excerpt: "Design and setup for schema model validation, xspectre postgreSQL spectral library"
 tags:
   - db

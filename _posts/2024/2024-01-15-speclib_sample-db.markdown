@@ -18,22 +18,22 @@ share: true
 
 Each sample (specimen) for which the spectral (or probe) scan is to be saved to the database must be defined. For the registration some attributes are required and some are optional. The number of obligatory attributes depends on the _campaign_ to which the sample belongs. Campaigns that are defined as _timeseries_, _geographic_ and _profiles_ require extra attributes.
 
-This post contains the general design of the schema **samples** for the xspectre spectral library postgreSQL database. The design is written in the [Database Markup Language (DBML)](https://dbml.dbdiagram.io/home/). For visualisation of the DBML code I have used the semi free tool [dbdiagram](https://dbdiagram.io/?utm_source=dbml).
+This post contains the general design of the schema **samples** for the xspectre spectral library and processing system postgreSQL database. The design is written in the [Database Markup Language (DBML)](https://dbml.dbdiagram.io/home/). For visualisation of the DBML code I have used the semi free tool [dbdiagram](https://dbdiagram.io/?utm_source=dbml).
 
 ## Purpose of the spectrometers schema
 
-The purpose of the **samples** schema is to keep track of all specimens that are scanned, whether the scanning is done with a spectral sensor or a probe. All samples that are saved in the database must be linked to a campaign. That link will also define the type of sensor, muzzle and probe(s) used in the scanning. But because each campaign can use any instance of the particular model also the uuid of the individual sensor, muzzle and probe(s) is saved with each sample. Then of course every sample is given a name and a title. The generic definition of a sample then uses four taxonomic levels: family, species, brand and version. These levels can be interpreted with flexibility as long as they are consistently applied within the same campaign.
+The purpose of the **samples** schema is to keep track of all specimens that are scanned, whether the scanning is done with a spectral sensor or a probe. All samples that are saved in the database must be linked to a campaign. That link will also define the user (owner), type of sensor, muzzle and probe(s) used in the scanning. But because each campaign can use any instance of the particular models defined also the uuids of the individual sensor, muzzle and probe(s) is saved with each sample. Then of course every sample is given a name and a title. The generic definition of a sample then uses four taxonomic levels: family, species, brand and version. These levels can be interpreted with flexibility as long as they are consistently applied within the same campaign.
 
 If the campaign is a timeseries the ordinal range of the sample is automatically added; if the campaign is geographic the longitude and latitude must be added; if the campaign is a profile, the relative profile position (e.g. depth) must be given.
 
-To improve the visualisation when exploring and analysing the spectra and probe properties, and any properties estimated from these data, each specimen can be given a customised symbolisation to be used for graphical presentations.
+To improve the visualisation when exploring and analysing the spectra and probe properties, and any properties estimated from these data, each specimen can be given a customised symbolisation to be used in graphical presentations.
 
 To store samples in the databases and retain the outlined information, the schema **samples** contains 5 tables. The table public.sampleifourl is a list that links  extended and external information to a sample. The remaining 4 tables include:
 
-- public.sample ()
-- public.samplesymbol ()
+- public.sample (sample metadata and campaign to which sample belongs)
+- public.samplesymbol (the symbol to use fore representing the sample graphically)
 - public.samplelocation (geographic position and profile depth)
-- public.symbols ()
+- public.symbols (definition of all available symbols)
 
 ### Illustration of the samples schema
 

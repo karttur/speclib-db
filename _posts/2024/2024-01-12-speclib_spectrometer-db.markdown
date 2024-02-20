@@ -20,21 +20,21 @@ In the xSpectre terminology a spectrometer is a composition consisting of a spec
 
 Spectrometers can also attach external probes (defined in the schema [probes](../speclib_probes-db)). The attachment is either through a more general GX16 (aviation) port or, for Ion Selective Electrodes, a BNC (coaxial) port. The probes as such are not defined as part of the spectrometer. The availability of the GX16 and BNC ports, however, are defined with each spectrometer model.
 
-This post contains the general design of the schema **spectrometers** for the xspectre spectral library postgreSQL database. The design is written in the [Database Markup Language (DBML)](https://dbml.dbdiagram.io/home/). For visualisation of the DBML code I have used the semi free tool [dbdiagram](https://dbdiagram.io/?utm_source=dbml).
+This post contains the general design of the schema **spectrometers** for the xspectre spectral library and processing system postgreSQL database. The design is written in the [Database Markup Language (DBML)](https://dbml.dbdiagram.io/home/). For visualisation of the DBML code I have used the semi free tool [dbdiagram](https://dbdiagram.io/?utm_source=dbml).
 
 ## Purpose of the spectrometers schema
 
-The purpose of the **spectrometers** schema is to make it possible to represent any combination of sensors (spectrometer bodies or xspeclum PCBs) and muzzles (or xspecled PCBs).
+The purpose of the **spectrometers** schema is to make it possible to represent any combination of sensors (spectrometer bodies or xspeclum PCBs) and muzzles (or xspecled PCBs). The schema is also used for defining which models come the the external ports, GX16 and BNC.
 
 All realised combinations of
 - sensor,
 - PCB version,
 - GX16 port, and
-- BNC port
+- BNC port.
 
 must be registered as a spectrometer model in the table _spectrometermodels_ and each actual copy of a model registered in the table _spectrometers_. As each _spectrometer_ contains a uniquely identified sensor, the universally unique identifiner (uuid) of a spectrometer is set to the sensoruuid of the attached sensor. Each spectrometer can be linked to any number of muzzles (via the _muzzleuuid)_, with each unique combination registeted separately in the table _spectromuzzles_ and given a unique _spectromuzzleuuid_.
 
-Because both individual sensors (xspeclum PCB/spectrometer body) and individual light sources (xspecled PCB/spectrometer muzzle) vary slightly in shape, function and performance, each combination must be individually calibrated. The calibration consists of three parts:
+Because both individual sensors (xspeclum PCB/spectrometer body) and individual light sources (xspecled PCB/spectrometer muzzle) vary slightly in function and performance, each combination must be individually calibrated. The calibration consists of three parts:
 
 1. power supply (voltage) that determines the electromagnetic emission from the lamp(s),
 2. integration time tuning, and
@@ -45,9 +45,9 @@ To accommodate the flexibility of allowing definition of all of the above, the s
 - public.spectrometermodels (definition of all realised spectrometer models),
 - public.spectrometers (itemised copies of spectrometer models),
 - public.spectromuzzles (itemised combinations of spectrometers and muzzles),
-- public.spectromuzzlepower (calibrated voltage power for individual spectrometer+muzzle),
-- public.spectromuzzlereftuning (tuning of integration times across the sensor spectral range for individual spectrometer+muzzle), and
-- public.spectromuzzlerefspectra (reference spectra for individual spectrometer+muzzle).
+- public.spectromuzzlepower (calibrated voltage power for individual spectrometer+muzzle combinations),
+- public.spectromuzzlereftuning (tuning of integration times across the sensor spectral range for individual spectrometer+muzzle combinations), and
+- public.spectromuzzlerefspectra (reference spectra for individual spectrometer+muzzle combinations).
 
 ### Illustration of the muzzles schema
 
@@ -143,8 +143,7 @@ Table spectromuzzlerefspectra {
  tag varchar(16) [default: 'default',pk]
 }
 
-//Ref: spectrometer.sensoruuid - sensors.sensors.sensoruuid
- Ref: sensors.sensors.sensorid - spectrometermodels.sensorid
+Ref: sensors.sensors.sensorid - spectrometermodels.sensorid
 Ref: spectrometermodels.spectrometermodelid - spectrometerinfourl.spectrometermodelid
 Ref: spectrometermodels.spectrometermodelid < spectrometers.spectrometermodelid
 Ref: sensors.sensors.sensoruuid - spectrometers.sensoruuid
