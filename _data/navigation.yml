@@ -1,0 +1,44 @@
+# Site navigation links
+
+- title: About
+  url: /about/
+  include: 'N'
+
+- title: Fount
+  url: /
+  include: 'N'
+
+- title: Articles
+  url: /overview/
+  include: 'N'
+
+- title: Blog
+  url: /blog/
+  include: 'N'
+
+- title: Setup blog
+  url: https://karttur.github.io/setup-theme-blog/
+  include: 'Y'
+  excerpt: 'Setting up this blog using Jekyll and Github'
+  tags:
+    - Blog setup
+    - Jekyll
+    - markdown
+    - GitHub
+    - Atom
+
+- title: Setup IDE
+  url: https://karttur.github.io/setup-ide/
+  include: 'Y'
+  excerpt: 'Installing Eclipse for Python (PyDev) using Anaconda as the Python interpreter, installing PostgreSQL, and then connecting these components to an operational framework.'
+  tags:
+    - Eclipse
+    - Python
+    - PyDev
+    - Anaconda
+    - PostreSQL
+    - psycopg2
+
+- title: Search
+  url: /search/
+  include: 'N'
