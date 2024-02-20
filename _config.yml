@@ -7,7 +7,7 @@ locale: en_US
 description: script your own Earth
 logo: site-logo.png
 search: true
-url: https://karttur.github.io/REPLACE
+url: https://karttur.github.io/speclib-db/
 #commonurl is the link to common resources for all my sites
 commonurl: https://karttur.github.io/common
 
