@@ -1,0 +1,81 @@
+---
+layout: post
+title: Karttur GitHub repository overview
+categories: woodwork
+excerpt: "Slipa och lacka trädetaljer"
+tags:
+  - trä
+  - slipa
+  - lacka
+image: ts-mdsl-rntwi_RNTWI_id_2001-2016_AS
+date: '2019-10-20 11:27'
+modified: '2019-10-20 T18:17:25.000Z'
+comments: true
+share: true
+figure1: machinelarning_histo_housing
+figure3A: machinelarning_linregnaive
+figure3B: machinelarning_linregmodel
+---
+
+## Introduktion
+
+### figures
+
+#### Single figure at commonurl
+
+```
+<figure>
+<img src="{{ site.commonurl }}/images/{{ site.data.images[page.figure1].file }}">
+<figcaption> {{ site.data.images[page.figure1].caption }} </figcaption>
+</figure>
+```
+
+Entry in images.yml
+```
+machinelarning_histo_housing:
+  file: machinelarning_histo_housing.png
+  author: Thomas Gumbricht
+  caption: Histograms for data about Boston housing prices
+  credit: null
+  source: null
+```
+
+#### Single figure at local images folder
+
+```
+<figure>
+<img src="../../images/imgFN.filetype }}">
+<figcaption> caption </figcaption>
+</figure>
+```
+
+#### Two columns of figures at commonurl
+
+```
+<figure class="half">
+	<a href="{{ site.commonurl }}/images/{{ site.data.images[page.figure3A].source }}"><img src="{{ site.commonurl }}/images/{{ site.data.images[page.figure3A].file }}" alt="image"></a>
+  <a href="{{ site.commonurl }}/images/{{ site.data.images[page.figure3B].source }}"><img src="{{ site.commonurl }}/images/{{ site.data.images[page.figure3B].file }}" alt="image"></a>
+	<figcaption>Comparsion using a multiple regression with all the data (left) and data divided into training and test datasets (right). To see larger versions, click in the images.</figcaption>
+</figure>
+```
+Entry in images.yml
+
+```
+machinelarning_linregnaive:
+    file: machinelarning_linregnaive.png
+    author: Thomas Gumbricht
+    caption: Naive multiple linear regression model (Boston housing prices)
+    credit: null
+    source: machinelarning_linregnaive.png
+machinelarning_linregmodel:
+    file: machinelarning_linregmodel.png
+    author: Thomas Gumbricht
+    caption: Training - test linear multiple regression model (Boston housing prices)
+    credit: null
+    source: machinelarning_linregmodel.png
+```
+
+#### Marginal figure
+
+![My figure]({{ site.commonurl }}/images/avg-rntwi_RNTWI_oka_2001-2016_xs-oka.jpg)
+{: .pull-right}
