@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Spectrometers schema
+title: Schema spectrometers
 categories: libspec-db
 excerpt: "Design and setup for schema spectrometers, xspectre postgreSQL spectral library"
 tags:
@@ -16,7 +16,7 @@ share: true
 
 ## Introduction
 
-In the xSpectre terminology a spectrometer is a composition consisting of a spectral sensor (defined in the schema [sensors](../speclib_sensor-db/)) and one or more muzzles, carrying the lamp and sample holder (defined in the schema [muzzles](../speclib_muzzle-db)). Physically the spectral sensor is attached to the xspeclum PCB that is mounted in the spectrometer body while the muzzle carries the smaller xspecled PCB. The spectrometer body and muzzle are joined with a bayonet mount. A spectrometer body can be linked to any number and type of xSpectre muzzle.
+In the xSpectre terminology a spectrometer is a composition consisting of a spectral sensor (defined in the schema [sensors](../speclib_sensors-db/)) and one or more muzzles, carrying the lamp and sample holder (defined in the schema [muzzles](../speclib_muzzles-db)). Physically the spectral sensor is attached to the xspeclum PCB that is mounted in the spectrometer body while the muzzle carries the smaller xspecled PCB. The spectrometer body and muzzle are joined with a bayonet mount.
 
 Spectrometers can also attach external probes (defined in the schema [probes](../speclib_probes-db)). The attachment is either through a more general GX16 (aviation) port or, for Ion Selective Electrodes, a BNC (coaxial) port. The probes as such are not defined as part of the spectrometer. The availability of the GX16 and BNC ports, however, are defined with each spectrometer model.
 
@@ -24,7 +24,7 @@ This post contains the general design of the schema **spectrometers** for the xs
 
 ## Purpose of the spectrometers schema
 
-The purpose of the **spectrometers** schema is to make it possible to represent any combination of sensors (spectrometer bodies or xspeclum PCBs) and muzzles (or xspecled PCBs). The schema is also used for defining which models come the the external ports, GX16 and BNC.
+The purpose of the **spectrometers** schema is to make it possible to represent any combination of sensors (spectrometer bodies or xspeclum PCBs) and muzzles (or xspecled PCBs). The schema is also used for defining which models come with external ports (ie. GX16 and/or BNC).
 
 All realised combinations of
 - sensor,
@@ -32,7 +32,7 @@ All realised combinations of
 - GX16 port, and
 - BNC port.
 
-must be registered as a spectrometer model in the table _spectrometermodels_ and each actual copy of a model registered in the table _spectrometers_. As each _spectrometer_ contains a uniquely identified sensor, the universally unique identifiner (uuid) of a spectrometer is set to the sensoruuid of the attached sensor. Each spectrometer can be linked to any number of muzzles (via the _muzzleuuid)_, with each unique combination registeted separately in the table _spectromuzzles_ and given a unique _spectromuzzleuuid_.
+must be registered as a spectrometer model in the table _spectrometermodel_ and each actual copy of a model registered in the table _spectrometer_. As each _spectrometer_ contains a uniquely identified _sensor_, the universally unique identifiner (uuid) of a spectrometer is set to the sensoruuid of the attached sensor. Each spectrometer can be linked to any number of muzzles (via the _muzzleuuid)_, with each unique combination registered separately in the table _spectromuzzle_ and given a unique _spectromuzzleuuid_.
 
 Because both individual sensors (xspeclum PCB/spectrometer body) and individual light sources (xspecled PCB/spectrometer muzzle) vary slightly in function and performance, each combination must be individually calibrated. The calibration consists of three parts:
 
@@ -40,11 +40,11 @@ Because both individual sensors (xspeclum PCB/spectrometer body) and individual 
 2. integration time tuning, and
 3. reference spectra (depends on the spectral method but must always be there).
 
-To accommodate the flexibility of allowing definition of all of the above, the spectrometers schema is divided into 7 separate table. One of the tables, public.spectrometerinfo is a support table. The remaining 6 tables include:
+To accommodate the flexibility of allowing definition of all of the above, the **spectrometers** schema is divided into 7 separate table. One of the tables, _public.spectrometerinfourl_ is a support table. The remaining 6 tables include:
 
-- public.spectrometermodels (definition of all realised spectrometer models),
-- public.spectrometers (itemised copies of spectrometer models),
-- public.spectromuzzles (itemised combinations of spectrometers and muzzles),
+- public.spectrometermodel (definition of all realised spectrometer models),
+- public.spectrometer (itemised copies of spectrometer models),
+- public.spectromuzzle (itemised combinations of spectrometers and muzzles),
 - public.spectromuzzlepower (calibrated voltage power for individual spectrometer+muzzle combinations),
 - public.spectromuzzlereftuning (tuning of integration times across the sensor spectral range for individual spectrometer+muzzle combinations), and
 - public.spectromuzzlerefspectra (reference spectra for individual spectrometer+muzzle combinations).
@@ -70,23 +70,23 @@ Project project_name {
   Note: 'Schema for spectrometers'
 }
 
-Table sensors.sensors {
+Table sensors.sensor {
   sensorid varchar(36)
-  sensoruuid char(36) [primary key]
+  sensoruuid UUID [primary key]
   serialnr varchar(16)
 }
 
-Table muzzles.muzzles {
-  muzzleuuid char(36) [primary key]
+Table muzzles.muzzle {
+  muzzleuuid UUID [primary key]
   muzzleid varchar(36)
   serialnr varchar(16)
 }
 
-Table spectrometermodels {
+Table spectrometermodel {
  sensorid varchar(36)
  source varchar(32)
  product varchar(32)
- model varchar(24)
+ model varchar(32)
  version varchar(8)
  pcb varchar(16)
  gx16port varchar(1)
@@ -97,44 +97,40 @@ Table spectrometermodels {
 
 Table spectrometerinfourl {
  spectrometermodelid varchar(36) [primary key]
- info varchar (255)
+ info TEXT
  url TEXT
 }
 
-Table spectrometers {
-  sensorid varchar(36)
- sensoruuid char(36) [pk]
+Table spectrometer {
+ sensoruuid UUID [pk]
  spectrometermodelid varchar(36)
- serialnr varchar(16)
- gx16port varchar(1)
- bncport varchar(1)
  createdate date
  status char(1)
 }
 
-Table spectromuzzles {
- sensoruuid char(36) [pk]
- muzzleuuid char(36) [pk]
- spectromuzzleuuid char(36)
+Table spectromuzzle {
+ sensoruuid UUID [pk]
+ muzzleuuid UUID [pk]
+ spectromuzzleuuid UUID
  createdatetime timestamp
 }
 
 Table spectromuzzlepower {
- spectromuzzleuuid char(36) [pk]
- millivoltage integer
+ spectromuzzleuuid UUID [pk]
+ mv integer
  createdatetime timestamp [pk]
 }
 
 Table spectromuzzlereftuning {
- spectromuzzleuuid char(36) [pk]
- msecarray smallint[]
- startpixelarray smallint[]
+ spectromuzzleuuid UUID [pk]
+ ms_array smallint[]
+ beginpixelarray smallint[]
  endpixelarray smallint[]
  createdatetime timestamp [pk]
 }
 
 Table spectromuzzlerefspectra {
- spectromuzzleuuid char(36) [pk]
+ spectromuzzleuuid UUID [pk]
  createdatetime timestamp [pk]
  signalmean real[]
  signalstd real[]
@@ -143,15 +139,15 @@ Table spectromuzzlerefspectra {
  tag varchar(16) [default: 'default',pk]
 }
 
-Ref: sensors.sensors.sensorid - spectrometermodels.sensorid
-Ref: spectrometermodels.spectrometermodelid - spectrometerinfourl.spectrometermodelid
-Ref: spectrometermodels.spectrometermodelid < spectrometers.spectrometermodelid
-Ref: sensors.sensors.sensoruuid - spectrometers.sensoruuid
-Ref: spectrometers.sensoruuid - spectromuzzles.sensoruuid
-Ref: spectromuzzles.muzzleuuid < muzzles.muzzles.muzzleuuid
-Ref: spectromuzzles.spectromuzzleuuid - spectromuzzlepower.spectromuzzleuuid
-Ref: spectromuzzles.spectromuzzleuuid - spectromuzzlereftuning.spectromuzzleuuid
-Ref: spectromuzzles.spectromuzzleuuid - spectromuzzlerefspectra.spectromuzzleuuid
+Ref: sensors.sensor.sensorid - spectrometermodel.sensorid
+Ref: spectrometermodel.spectrometermodelid - spectrometerinfourl.spectrometermodelid
+Ref: spectrometermodel.spectrometermodelid < spectrometer.spectrometermodelid
+Ref: sensors.sensor.sensoruuid - spectrometer.sensoruuid
+Ref: spectrometer.sensoruuid - spectromuzzle.sensoruuid
+Ref: spectromuzzle.muzzleuuid < muzzles.muzzle.muzzleuuid
+Ref: spectromuzzle.spectromuzzleuuid - spectromuzzlepower.spectromuzzleuuid
+Ref: spectromuzzle.spectromuzzleuuid - spectromuzzlereftuning.spectromuzzleuuid
+Ref: spectromuzzle.spectromuzzleuuid - spectromuzzlerefspectra.spectromuzzleuuid
 ```
 
 ## xspeclib code
@@ -167,19 +163,18 @@ The xspeclib code can be called by a customised Python script for automatically 
       "delete": false,
       "parameters": {
         "db": "speclib",
-        "schema": "spectrometer",
-        "table": "spectrometermodels",
+        "schema": "spectrometers",
+        "table": "spectrometermodel",
         "command": [
           "sensorid varchar(36)",
           "source varchar(32)",
           "product varchar(32)",
-          "model varchar(24)",
+          "model varchar(32)",
           "version varchar(8)",
           "pcb varchar(16)",
           "gx16port varchar(1)",
           "bncport varchar(1)",
           "spectrometermodelid varchar(36)",
-          "serialnr varchar(16)",
           "status char(1)",
           "PRIMARY KEY (spectrometermodelid)"
         ]
@@ -195,7 +190,7 @@ The xspeclib code can be called by a customised Python script for automatically 
         "table": "spectrometerinfourl",
         "command": [
           "spectrometermodelid varchar(36)",
-          "info varchar (255)",
+          "info TEXT",
           "url TEXT",
           "PRIMARY KEY (spectrometermodelid)"
         ]
@@ -208,14 +203,10 @@ The xspeclib code can be called by a customised Python script for automatically 
       "parameters": {
         "db": "speclib",
         "schema": "spectrometers",
-        "table": "spectrometers",
+        "table": "spectrometer",
         "command": [
-          "sensorid varchar(36)",
-          "sensoruuid char(36)",
+          "sensoruuid UUID",
           "spectrometermodelid varchar(36)",
-          "serialnr varchar(16)",
-          "gx16port varchar(1)",
-          "bncport varchar(1)",
           "createdate date",
           "status char(1)",
           "PRIMARY KEY (sensoruuid)"
@@ -228,12 +219,12 @@ The xspeclib code can be called by a customised Python script for automatically 
       "delete": false,
       "parameters": {
         "db": "speclib",
-        "schema": "spectrometer",
-        "table": "spectromuzzles",
+        "schema": "spectrometers",
+        "table": "spectromuzzle",
         "command": [
-          "sensoruuid char(36)",
-          "muzzleuuid char(36)",
-          "spectromuzzleuuid char(36)",
+          "sensoruuid UUID",
+          "muzzleuuid UUID",
+          "spectromuzzleuuid UUID",
           "createdatetime timestamp",
           "PRIMARY KEY (sensoruuid,muzzleuuid)"
         ]
@@ -245,11 +236,11 @@ The xspeclib code can be called by a customised Python script for automatically 
       "delete": false,
       "parameters": {
         "db": "speclib",
-        "schema": "spectrometer",
+        "schema": "spectrometers",
         "table": "spectromuzzlepower",
         "command": [
-          "spectromuzzleuuid char(36)",
-          "millivoltage smallint",
+          "spectromuzzleuuid UUID",
+          "mv smallint",
           "createdatetime timestamp",
           "PRIMARY KEY (spectromuzzleuuid,createdatetime)"
         ]
@@ -261,12 +252,12 @@ The xspeclib code can be called by a customised Python script for automatically 
       "delete": false,
       "parameters": {
         "db": "speclib",
-        "schema": "xspectrometer",
+        "schema": "spectrometers",
         "table": "spectromuzzlereftuning",
         "command": [
-          "spectromuzzleuuid char(36)",
-          "msecarray smallint[]",
-          "startpixelarray smallint[]",
+          "spectromuzzleuuid UUID",
+          "ms_array smallint[]",
+          "beginpixelarray smallint[]",
           "endpixelarray smallint[]",
           "createdatetime timestamp",
           "PRIMARY KEY (spectromuzzleuuid,createdatetime)"
@@ -279,16 +270,16 @@ The xspeclib code can be called by a customised Python script for automatically 
       "delete": false,
       "parameters": {
         "db": "speclib",
-        "schema": "xspectrometer",
+        "schema": "spectrometers",
         "table": "spectromuzzlerefspectra",
         "command": [
-          "spectromuzzleuuid char(36)",
+          "spectromuzzleuuid UUID",
           "createdatetime timestamp",
           "signalmean real[]",
           "signalstd real[]",
           "darkmean real[]",
           "darkstd real[]",
-          "tag varchar()16",
+          "tag varchar(16)",
           "PRIMARY KEY (spectromuzzleuuid,createdatetime)"
         ]
       }

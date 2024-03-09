@@ -1,0 +1,100 @@
+// Use DBML to define your database structure
+// Docs: https://dbml.dbdiagram.io/docs
+
+Project project_name {
+  database_type: 'PostgreSQL'
+  Note: 'Schema for muzzles'
+}
+
+Table lampmodels {
+  lampid varchar(36) [primary key]
+  source varchar(32)
+  product varchar(32)
+  model varchar(32)
+  mv_min smallint
+  mv_max smallint
+  mv_typical smallint
+  ma_typical smallint
+  wl_min smallint
+  wl_max smallint
+  wl_peak smallint
+  technology varchar(16)
+  formfactor varchar(16)
+  status varchar(1)
+}
+
+Table lampinfourl {
+ lampid varchar(36) [primary key]
+ info TEXT
+ url TEXT
+}
+
+Table muzzlemodels {
+  muzzlelongid varchar(184)
+  muzzleid varchar(36) [primary key]
+  version varchar(8)
+  pcb varhar(16)
+  lampid1 varchar(36)
+  lampid2 varchar(36)
+  lampid1resistor integer
+  lampid2resistor integer
+  mv_min smallint
+  mv_max smallint
+  mv_typical smallint
+  ma_typical smallint
+  ms_stabilisationtime smallint
+  status varchar(1)
+}
+
+Table muzzleinfourl {
+ muzzleid varchar(36) [primary key]
+ info TEXT
+ url TEXT
+}
+
+Table muzzlecode {
+ muzzleid varchar(36) [primary key]
+ muzzleshortid varchar(16)
+ samplestatecode char(1)
+ nrlamps char(1)
+ signaltypecode char(1)
+ lampbandcode varchar(4)
+ eepromcode varchar(8)
+}
+
+Table muzzles {
+  muzzleuuid UUID [primary key]
+  muzzleid varchar(36)
+  serialnr varchar(16)
+}
+
+Table samplestates {
+  samplestatecode char(1) [primary key]
+  samplestate varchar(32)
+}
+
+Table signaltypes {
+  signaltypecode char(1) [primary key]
+  signaltype varchar(32)
+}
+
+Table lampband {
+  lampbandcode char(1) [primary key]
+  lampband varchar(32)
+}
+
+Table technology {
+  technology varchar(16) [primary key]
+  info TEXT
+}
+
+Ref: lampmodels.lampid - lampinfourl.lampid
+Ref: lampmodels.technology - technology.technology
+Ref: lampmodels.lampid < muzzlemodels.lampid1
+Ref: lampmodels.lampid < muzzlemodels.lampid2
+Ref: muzzlemodels.muzzleid - muzzleinfourl.muzzleid
+Ref: muzzlemodels.muzzleid < muzzles.muzzleid
+Ref: muzzlemodels.muzzleid - muzzlecode.muzzleid
+Ref: samplestates.samplestatecode - muzzlecode.samplestatecode
+Ref: signaltypes.signaltypecode - muzzlecode.signaltypecode
+Ref: lampband.lampbandcode - muzzlecode.lampbandcode

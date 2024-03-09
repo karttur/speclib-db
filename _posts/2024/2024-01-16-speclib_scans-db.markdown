@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Scan schema
+title: Schema scans
 categories: libspec-db
 excerpt: "Design and setup for schema scan, xspectre postgreSQL spectral library"
 tags:
@@ -16,15 +16,15 @@ share: true
 
 ## Introduction
 
-In the xSpectre database the actual spectral (or probe) measurements are stored in the schema **scan**. This post contains the general design of the schema **scan** for the spectral library and processing system postgreSQL database. The design is written in the [Database Markup Language (DBML)](https://dbml.dbdiagram.io/home/). For visualisation of the DBML code I have used the semi free tool [dbdiagram](https://dbdiagram.io/?utm_source=dbml).
+In the xSpectre database the actual spectral (or probe) measurements are stored in the schema **scans**. This post contains the general design of the schema **scans** for the spectral library and processing system postgreSQL database. The design is written in the [Database Markup Language (DBML)](https://dbml.dbdiagram.io/home/). For visualisation of the DBML code I have used the semi free tool [dbdiagram](https://dbdiagram.io/?utm_source=dbml).
 
-## Purpose of the scan schema
+## Purpose of the scans schema
 
-The purpose of the **scan** schema is to store recordings from a [xspectrolum<b>+</b>](https://www.environimagine.com/spectrometerv080.html) spectrometer linked to a sample and a campaign. Each scan, regardless of the sensor or probe, is registered as a signal mean and signal standard deviation (std).
+The purpose of the **scans** schema is to store recordings from a [xspectrolum<b>+</b>](https://www.environimagine.com/spectrometerv080.html) spectrometer linked to a sample and a campaign. Each scan, regardless of the sensor or probe, is registered as a signal mean and signal standard deviation (std).
 
-To keep track of the sample, campaign and individual instrument set-up for each scan, the **scan** schema is linked to uuid's in the schemas **spectrometers**, **probes** and **samples**.
+To keep track of the sample, campaign and individual instrument set-up for each scan, the **scans** schema is linked to uuid's in the schemas **spectrometers**, **probes** and **samples**.
 
-The definition and registration of a sample resides in the **samples** schema, but any _subsampling_ (e.g. repeated measurements of different parts or slices of a sample) or different sample _preparations_ (e.g. drying, sieving, chemical preservation, homogenisation etc) are registered in the **scan** schema. In addition also the _mode_ (arbitrarily defined) can be stated for any additional sample or instrument alteration (by default it is not used and left empty).
+The definition and registration of a sample resides in the **samples** schema, but any _subsampling_ (e.g. repeated measurements of different parts or slices of a sample) or different sample _preparations_ (e.g. drying, sieving, chemical preservation, homogenisation etc) are registered in the **scans** schema. In addition also the _mode_ (arbitrarily defined) can be stated for any additional sample or instrument alteration (by default it is not used and left empty).
 
 The [xspectrolum<b>+</b>](https://www.environimagine.com/spectrometerv080.html) can be used for applying 4 different spectroscopy methods:
 
@@ -33,9 +33,9 @@ The [xspectrolum<b>+</b>](https://www.environimagine.com/spectrometerv080.html) 
 - fluorescence, and
 - Raman spectroscopy.
 
-Which method to apply is defined by the campaign that also defines the sensor, muzzle and probe models to use. In the **scan** database the signals derived from the 4 methods are saved in separate tables. Data from probe instruments are saved in one common table.
+Which method to apply is defined by the campaign that also defines the sensor, muzzle and probe models to use. In the **scans** database the signals derived from the 4 methods are saved in separate tables. Data from probe instruments are saved in one common table.
 
-To store scans in the databases and retain the outlined information, the schema **scan** contains 12 tables. 4 of the tables are support lists for defining sample preparations and mode:
+To store scans in the databases and retain the outlined information, the schema **scans** contains 12 tables. 4 of the tables are support lists for defining sample preparations and mode:
 
 - public.spectraprep (list linking sample preparation codes for spectral scanning to methods),
 - public.spectramode (expansion of mode for spectral scanning if required),
@@ -58,8 +58,8 @@ The remaining 8 tables include:
 Mouse click on the figure to get a larger illustration in a pop-up window.
 
 <figure>
-<a href="../../images/DBML_schema-scan.png">
-<img src="../../images/DBML_schema-scan.png"></a>
+<a href="../../images/DBML_schema-scans.png">
+<img src="../../images/DBML_schema-scans.png"></a>
 <figcaption>Scan DBML database structure</figcaption>
 </figure>
 
@@ -74,89 +74,93 @@ Project project_name {
   Note: 'Schema for spectra scan library'
 }
 
-Table sample.sample {
-  sampleuuid char(36)
-  campaignuuid char(36)
+Table samples.sample {
+  sampleuuid UUID
+  campaignuuid UUID
   morecolumns char(1)
-}
-
-Table subsample {
-  sampleuuid char(36) [pk]
-  subsample char(2) [pk]
-  scandatetime timestamp
 }
 
 Table spectraprep {
   prepcode char(2) [NOT NULL, pk]
   sampleprep varchar(32) [NOT NULL]
-  info varchar (255)
+  info TEXT
   url TEXT
 }
 
 Table spectramode {
   mode varchar(16) [pk]
-  info varchar (255)
+  info TEXT
   url TEXT
 }
 
-Table spectrometers.spectromuzzles {
- spectromuzzleuuid char(36)
+Table spectrometers.spectromuzzle {
+ spectromuzzleuuid UUID
  morecolumns char(1)
 }
 
 Table scanspectra {
-  sampleuuid char(36) [pk]
+  sampleuuid UUID [pk]
   subsample char(2) [pk]
-  scanuuid char(36)
-  spectromuzzleuuid char(36)
+  scanuuid UUID
+  scanneruuid UUID
+  spectromuzzleuuid UUID
   prepcode char(2) [NOT NULL, pk]
   mode varchar(16) [NOT NULL, pk]
+  samplerepeats smallint
+  darkrepeats smallint
+  headtrail smallint
+  scattercorrectioncode char[3]
   nafreq real
   negfreq real
   extfreq real
 }
 
 Table reflectance {
-  scanuuid char(36) [pk]
+  scanuuid UUID [pk]
   signalmean real[]
   signalstd real[]
 }
 
 Table transmissivity {
-  scanuuid char(36) [pk]
+  scanuuid UUID [pk]
   signalmean real[]
   signalstd real[]
 }
 
 Table fluoresence {
-  scanuuid char(36) [pk]
+  scanuuid UUID [pk]
   signalmean real[]
   signalstd real[]
 }
 
 Table raman {
-  scanuuid char(36) [pk]
+  scanuuid UUID [pk]
   signalmean real[]
   signalstd real[]
 }
 
-Table probes.probes {
-  probeuuid char(36) [primary key]
+Table probes.probe {
+  probeuuid UUID [primary key]
   morecolumns char(1)
 }
 
 Table scanprobe {
-  sampleuuid char(36) [pk]
+  sampleuuid UUID [pk]
   subsample varchar(8) [pk]
-  probeuuid char(36)
+  probeuuid UUID
+  proberuuid UUID
   prepcode char(2) [pk]
   mode varchar(16) [pk]
-  scanuuid char(36)
+  scanuuid UUID
 }
 
 Table proberecord {
-  scanuuid char(36) [pk]
+  scanuuid UUID [pk]
   registerkey varchar(16) [pk]
+  samplerepeats smallint
+  darkrepeats smallint
+  headtrail smallint
+  scattercorrectioncode char[3]
   registervaluemean real
   registervaluestd real
 }
@@ -164,30 +168,33 @@ Table proberecord {
 Table probeprep {
   prepcode char(2) [NOT NULL, pk]
   sampleprep varchar(32) [NOT NULL]
-  info varchar (255)
+  info TEXT
   url TEXT
 }
 
 Table probemode {
   mode varchar(16) [pk]
-  info varchar (255)
+  info TEXT
   url TEXT
+}
+
+Table support.scattercorrectioncode {
+  scattercorrectioncode char[3] [pk]
+  scattercorrection TEXT
 }
 
 Ref: scanspectra.prepcode - spectraprep.prepcode
 Ref: scanspectra.mode - spectramode.mode
 Ref: scanprobe.prepcode - probeprep.prepcode
 Ref: scanprobe.mode - probemode.mode
-Ref: sample.sample.sampleuuid - subsample.sampleuuid
-Ref: spectrometers.spectromuzzles.spectromuzzleuuid - scanspectra.spectromuzzleuuid
-Ref: subsample.sampleuuid < scanspectra.sampleuuid
-Ref: subsample.subsample < scanspectra.subsample
+Ref: spectrometers.spectromuzzle.spectromuzzleuuid - scanspectra.spectromuzzleuuid
 Ref: scanspectra.scanuuid - reflectance.scanuuid
 Ref: scanspectra.scanuuid - transmissivity.scanuuid
 Ref: scanspectra.scanuuid - fluoresence.scanuuid
 Ref: scanspectra.scanuuid - raman.scanuuid
-Ref: subsample.sampleuuid < scanprobe.sampleuuid
-Ref: probes.probes.probeuuid < scanprobe.probeuuid
+Ref: probes.probe.probeuuid < scanprobe.probeuuid
+Ref: scanspectra.scattercorrectioncode -  support.scattercorrectioncode.scattercorrectioncode
+Ref: proberecord.scattercorrectioncode -  support.scattercorrectioncode.scattercorrectioncode
 ```
 
 ## xspeclib code
@@ -203,28 +210,12 @@ The xspeclib code can be called by a customised Python script for automatically 
       "delete": false,
       "parameters": {
         "db": "speclib",
-        "schema": "scan",
-        "table": "subsample",
-        "command": [
-          "sampleuuid char(36)",
-          "subsample char(2)",
-          "scandatetime timestamp",
-          "PRIMARY KEY (sampleuuid,subsample)"
-        ]
-      }
-    },
-    {
-      "processid": "createtable",
-      "overwrite": false,
-      "delete": false,
-      "parameters": {
-        "db": "speclib",
-        "schema": "scan",
+        "schema": "scans",
         "table": "spectraprep",
         "command": [
           "prepcode char(2) NOT NULL",
           "sampleprep varchar(32) [NOT NULL]",
-          "info varchar (255)",
+          "info TEXT",
           "url TEXT",
           "PRIMARY KEY (prepcode)"
         ]
@@ -236,11 +227,11 @@ The xspeclib code can be called by a customised Python script for automatically 
       "delete": false,
       "parameters": {
         "db": "speclib",
-        "schema": "scan",
+        "schema": "scans",
         "table": "spectramode",
         "command": [
-          "mode varchar(2)",
-          "info varchar (255)",
+          "mode varchar(16)",
+          "info TEXT",
           "url TEXT",
           "PRIMARY KEY (mode)"
         ]
@@ -252,15 +243,20 @@ The xspeclib code can be called by a customised Python script for automatically 
       "delete": false,
       "parameters": {
         "db": "speclib",
-        "schema": "scan",
+        "schema": "scans",
         "table": "scanspectra",
         "command": [
-          "sampleuuid char(36)",
+          "sampleuuid UUID",
           "subsample char(2)",
-          "scanuuid char(36)",
-          "spectromuzzleuuid char(36)",
+          "scanuuid UUID",
+          "scanneruuid UUID",
+          "spectromuzzleuuid UUID",
           "prepcode char(2) [NOT NULL]",
           "mode varchar(16) [NOT NULL]",
+          "samplerepeats smallint",
+          "darkrepeats smallint",
+          "headtrail smallint",
+          "scattercorrectioncode char[3]",
           "nafreq real",
           "negfreq real",
           "extfreq real",
@@ -274,10 +270,10 @@ The xspeclib code can be called by a customised Python script for automatically 
       "delete": false,
       "parameters": {
         "db": "speclib",
-        "schema": "scan",
+        "schema": "scans",
         "table": "reflectance",
         "command": [
-          "scanuuid char(36)",
+          "scanuuid UUID",
           "signalmean real[]",
           "signalstd real[]",
           "PRIMARY KEY (scanuuid)"
@@ -290,10 +286,10 @@ The xspeclib code can be called by a customised Python script for automatically 
       "delete": false,
       "parameters": {
         "db": "speclib",
-        "schema": "scan",
+        "schema": "scans",
         "table": "transmissivity",
         "command": [
-          "scanuuid char(36)",
+          "scanuuid UUID",
           "signalmean real[]",
           "signalstd real[]",
           "PRIMARY KEY (scanuuid)"
@@ -306,10 +302,10 @@ The xspeclib code can be called by a customised Python script for automatically 
       "delete": false,
       "parameters": {
         "db": "speclib",
-        "schema": "scan",
+        "schema": "scans",
         "table": "fluoresence",
         "command": [
-          "scanuuid char(36)",
+          "scanuuid UUID",
           "signalmean real[]",
           "signalstd real[]",
           "PRIMARY KEY (scanuuid)"
@@ -322,10 +318,10 @@ The xspeclib code can be called by a customised Python script for automatically 
       "delete": false,
       "parameters": {
         "db": "speclib",
-        "schema": "scan",
+        "schema": "scans",
         "table": "raman",
         "command": [
-          "scanuuid char(36)",
+          "scanuuid UUID",
           "signalmean real[]",
           "signalstd real[]",
           "PRIMARY KEY (scanuuid)"
@@ -338,15 +334,16 @@ The xspeclib code can be called by a customised Python script for automatically 
       "delete": false,
       "parameters": {
         "db": "speclib",
-        "schema": "scan",
+        "schema": "scans",
         "table": "scanprobe",
         "command": [
-          "sampleuuid char(36)",
+          "sampleuuid UUID",
           "subsample varchar(8)",
-          "probeuuid char(36)",
+          "probeuuid UUID",
           "prepcode char(2)",
+          "proberuuid UUID",
           "mode varchar(16)",
-          "scanuuid char(36)",
+          "scanuuid UUID",
           "PRIMARY KEY (sampleuuid, subsample, prepcode, mode)"
         ]
       }
@@ -357,11 +354,15 @@ The xspeclib code can be called by a customised Python script for automatically 
       "delete": false,
       "parameters": {
         "db": "speclib",
-        "schema": "scan",
+        "schema": "scans",
         "table": "proberecord",
         "command": [
-          "scanuuid char(36)",
+          "scanuuid UUID",
           "registerkey varchar(16)",
+          "samplerepeats smallint",
+          "darkrepeats smallint",
+          "headtrail smallint",
+          "scattercorrectioncode char[3]",
           "registervaluemean real",
           "registervaluestd real",
           "PRIMARY KEY (scanuuid, registerkey)"
@@ -374,12 +375,12 @@ The xspeclib code can be called by a customised Python script for automatically 
       "delete": false,
       "parameters": {
         "db": "speclib",
-        "schema": "scan",
+        "schema": "scans",
         "table": "spectraprep",
         "command": [
           "prepcode char(2) NOT NULL",
           "sampleprep varchar(32) [NOT NULL]",
-          "info varchar (255)",
+          "info TEXT",
           "url TEXT",
           "PRIMARY KEY (prepcode)"
         ]
@@ -391,11 +392,28 @@ The xspeclib code can be called by a customised Python script for automatically 
       "delete": false,
       "parameters": {
         "db": "speclib",
-        "schema": "scan",
-        "table": "spectramode",
+        "schema": "scans",
+        "table": "probeprep",
         "command": [
-          "mode varchar(2)",
-          "info varchar (255)",
+          "prepcode char(2) NOT NULL",
+          "sampleprep varchar(32) [NOT NULL]",
+          "info TEXT",
+          "url TEXT",
+          "PRIMARY KEY (prepcode)"
+        ]
+      }
+    },
+    {
+      "processid": "createtable",
+      "overwrite": false,
+      "delete": false,
+      "parameters": {
+        "db": "speclib",
+        "schema": "scans",
+        "table": "probemode",
+        "command": [
+          "mode varchar(16)",
+          "info TEXT",
           "url TEXT",
           "PRIMARY KEY (mode)"
         ]

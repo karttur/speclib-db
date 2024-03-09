@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Scan schema
+title: Schema modelvalidations
 categories: libspec-db-todo
 excerpt: "Design and setup for schema model validation, xspectre postgreSQL spectral library"
 tags:
@@ -16,51 +16,28 @@ share: true
 
 ## Introduction
 
+The **modelvalidations** schema saves the results of deployed Machne Learning (ML) models. The actual model settings and results are saved as postgreSQL json objects.
 
+evaluation and definition of Machine Learning (ML) models using spectra and spectra derivates as covariates and aiming to predict any physical, chemical and biological property of the substance (target feature) under stury. The **modelsetups** schema itself contains tables for:
+- metadata defining a model, and
+- process steps to include for setting up model development, testing and validation.
+
+Tables defining the process parameters and algorithms to apply for e.g. covariate correction and selection, parameter settings for model testing and validation, plotting and hyperparameter tuning are defined in separate schemas (see below). The **modelsetups** schema, however, contains the boolean (yes/no) arguments determining whether or not to include a particular process or algorithm in the process chain.
+
+This post contains the general design of the schema **modelsetups** for the xspectre library and processing system postgreSQL database. The design is written in the [Database Markup Language (DBML)](https://dbml.dbdiagram.io/home/). For visualisation of the DBML code I have used the semi free tool [dbdiagram](https://dbdiagram.io/?utm_source=dbml).
 
 ## Purpose of the model validation schema
 
-The purpose of the **scan** schema is to store recordings from a [xspectrolum<b>+</b>](https://www.environimagine.com/spectrometerv080.html) spectrometer linked to a sample and a campaign. Each scan, regardless of the sensor or probe, is registered as a signal mean and signal standard deviation (std). The default setting for scanning with the [xspectrolum<b>+</b>](https://www.environimagine.com/spectrometerv080.html) is to always run 6 individual scans and then store the results as mean and std signals.
+The purpose of the **modelvalidations**
 
-To keep track of the sample, campaign and individual instrument set-up for each scan, the **scan** schema is linked to uuid's in the schemas **spectrometers**, **probes** and **samples**.
-
-The definition and registration of a sample resides in the **samples** schema, but any _subsampling_ (e.g. repeated measurements of different parts or slices of a sample) or different sample _preparations_ (e.g. drying, sieving, chemical preservation, homogenisation etc) are registered in the **scan** schema. In addition also the _mode_ (arbitrarily defined) can be stated for any additional sample or instrument alteration (by default it is not used and left empty).
-
-The [xspectrolum<b>+</b>](https://www.environimagine.com/spectrometerv080.html) can be used for applying 4 different spectroscopy methods:
-
-- diffuse reflectance,
-- transparency,
-- fluorescence, and
-- Raman spectroscopy.
-
-Which method to apply is defined by the campaign that also defines the sensor, muzzle and probe models to use. In the **scan** database the signals derived from the 4 methods are saved in separate tables. Data from probe instruments are saved in one common table.
-
-To store scans in the databases and retain the outlined information, the schema **scan** contains 12 tables. 4 of the tables are support lists for defining sample preparations and mode:
-
-- public.spectraprep (list linking sample preparation codes for spectral scanning to methods),
-- public.spectramode (expansion of mode for spectral scanning if required),
-- public.probprep (list linking sample preparation codes for probe scanning to methods), and
-- public.probemode  (expansion of mode for probe scanning if required)
-
-The remaining 8 tables include:
-
-- public.samplescan (links to the sample and defines any subsampling [defaulted to '_A', '_B', '_C' ... if done sequentially] and the timestamp of the scan),
-- public.scanspectra (links the scan to the spectral sensor+muzzle of the individual instrument, and defines the sample preparation and any mode),
-- public.reflectance (mean and std of diffuse reflectance signals),
-- public.transmissivity (mean and std of transmissivity signals),
-- public.reflectance (mean and std of  fluorescence signals),
-- public.reflectance (mean and std of Raman signals),
-- public.scanprobe (links the scan to the probe of the individual instrument, defines the sample preparation and any mode)
-- public.scanrecord (stores the mean and std of the probe register)
-
-### Illustration of the scan schema
+### Illustration of the modelvalidations schema
 
 Mouse click on the figure to get a larger illustration in a pop-up window.
 
 <figure>
-<a href="../../images/DBML_schema-scan.png">
-<img src="../../images/DBML_schema-scan.png"></a>
-<figcaption>Scan DBML database structure</figcaption>
+<a href="../../images/DBML_schema-modelvalidations.png">
+<img src="../../images/DBML_schema-modelvalidations.png"></a>
+<figcaption>Modelvalidations DBML database structure</figcaption>
 </figure>
 
 ### DBML Code
@@ -75,13 +52,13 @@ Project project_name {
 }
 
 Table modelvalidation {
-  modeluuid char(36) [pk]
+  modeluuid UUID [pk]
   featureimportance boolean
   modelvalidation boolean
 }
 
 Table featureimportance {
-    modeluuid char(36) [pk]
+    modeluuid UUID [pk]
     reportmaxfeatures smallint
     permutationrepeats smallint
     coefficientimportance boolean
@@ -89,23 +66,23 @@ Table featureimportance {
 }
 
 Table modelvalidation {
-    modeluuid char(36) [pk]
+    modeluuid UUID [pk]
     traintest boolean
     kfold boolean
 }
 
 Table traintest {
-    modeluuid char(36) [pk]
+    modeluuid UUID [pk]
     testfraction real
 }
 
 Table kfold {
-    modeluuid char(36) [pk]
+    modeluuid UUID [pk]
     nfolds smallint
 }
 
 Table modelplot {
-    modeluuid char(36) [pk]
+    modeluuid UUID [pk]
     plotcode char(1)
 }
 
@@ -128,7 +105,7 @@ The xspeclib code can be called by a customised Python script for automatically 
         "schema": "scan",
         "table": "subsample",
         "command": [
-          "sampleuuid char(36)",
+          "sampleuuid UUID",
           "subsample char(2)",
           "scandatetime timestamp",
           "PRIMARY KEY (sampleuuid,subsample)"
@@ -146,7 +123,7 @@ The xspeclib code can be called by a customised Python script for automatically 
         "command": [
           "prepcode char(2) NOT NULL",
           "sampleprep varchar(32) [NOT NULL]",
-          "info varchar (255)",
+          "info TEXT",
           "url TEXT",
           "PRIMARY KEY (prepcode)"
         ]
@@ -162,7 +139,7 @@ The xspeclib code can be called by a customised Python script for automatically 
         "table": "spectramode",
         "command": [
           "mode varchar(2)",
-          "info varchar (255)",
+          "info TEXT",
           "url TEXT",
           "PRIMARY KEY (mode)"
         ]
@@ -177,10 +154,10 @@ The xspeclib code can be called by a customised Python script for automatically 
         "schema": "scan",
         "table": "scanspectra",
         "command": [
-          "sampleuuid char(36)",
+          "sampleuuid UUID",
           "subsample char(2)",
-          "scanuuid char(36)",
-          "spectromuzzleuuid char(36)",
+          "scanuuid UUID",
+          "spectromuzzleuuid UUID",
           "prepcode char(2) [NOT NULL]",
           "mode varchar(16) [NOT NULL]",
           "nafreq real",
@@ -199,7 +176,7 @@ The xspeclib code can be called by a customised Python script for automatically 
         "schema": "scan",
         "table": "reflectance",
         "command": [
-          "scanuuid char(36)",
+          "scanuuid UUID",
           "signalmean real[]",
           "signalstd real[]",
           "PRIMARY KEY (scanuuid)"
@@ -215,7 +192,7 @@ The xspeclib code can be called by a customised Python script for automatically 
         "schema": "scan",
         "table": "transmissivity",
         "command": [
-          "scanuuid char(36)",
+          "scanuuid UUID",
           "signalmean real[]",
           "signalstd real[]",
           "PRIMARY KEY (scanuuid)"
@@ -231,7 +208,7 @@ The xspeclib code can be called by a customised Python script for automatically 
         "schema": "scan",
         "table": "fluoresence",
         "command": [
-          "scanuuid char(36)",
+          "scanuuid UUID",
           "signalmean real[]",
           "signalstd real[]",
           "PRIMARY KEY (scanuuid)"
@@ -247,7 +224,7 @@ The xspeclib code can be called by a customised Python script for automatically 
         "schema": "scan",
         "table": "raman",
         "command": [
-          "scanuuid char(36)",
+          "scanuuid UUID",
           "signalmean real[]",
           "signalstd real[]",
           "PRIMARY KEY (scanuuid)"
@@ -263,12 +240,12 @@ The xspeclib code can be called by a customised Python script for automatically 
         "schema": "scan",
         "table": "scanprobe",
         "command": [
-          "sampleuuid char(36)",
+          "sampleuuid UUID",
           "subsample varchar(8)",
-          "probeuuid char(36)",
+          "probeuuid UUID",
           "prepcode char(2)",
           "mode varchar(16)",
-          "scanuuid char(36)",
+          "scanuuid UUID",
           "PRIMARY KEY (sampleuuid, subsample, prepcode, mode)"
         ]
       }
@@ -282,7 +259,7 @@ The xspeclib code can be called by a customised Python script for automatically 
         "schema": "scan",
         "table": "proberecord",
         "command": [
-          "scanuuid char(36)",
+          "scanuuid UUID",
           "registerkey varchar(16)",
           "registervaluemean real",
           "registervaluestd real",
@@ -301,7 +278,7 @@ The xspeclib code can be called by a customised Python script for automatically 
         "command": [
           "prepcode char(2) NOT NULL",
           "sampleprep varchar(32) [NOT NULL]",
-          "info varchar (255)",
+          "info TEXT",
           "url TEXT",
           "PRIMARY KEY (prepcode)"
         ]
@@ -317,7 +294,7 @@ The xspeclib code can be called by a customised Python script for automatically 
         "table": "spectramode",
         "command": [
           "mode varchar(2)",
-          "info varchar (255)",
+          "info TEXT",
           "url TEXT",
           "PRIMARY KEY (mode)"
         ]

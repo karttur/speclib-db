@@ -1,8 +1,8 @@
 ---
 layout: post
-title: Sensors schema
+title: Schema sensors
 categories: libspec-db
-excerpt: "Design and setup for schema sensors, xspectre postgreSQL spectral library"
+excerpt: "Design and setup for schema sensors, xspectre postgreSQL database"
 tags:
   - db
   - setup
@@ -22,7 +22,7 @@ This post contains the general design of the schema **sensors** for the xspectre
 
 ## Purpose of the sensors schema
 
-The purpose of the sensors schema is to allow defining any spectral sensor that can be carried by the xSpectre [xspectrolum<b>+</b>](https://www.environimagine.com/spectrometerv080.html). At time of writing this post in February 2024, [xspectrolum<b>+</b>](https://www.environimagine.com/spectrometerv080.html) can carry any of the following spectral sensors:
+The purpose of the **sensors** schema is to allow defining any spectral sensor that can be carried by the xSpectre [xspectrolum<b>+</b>](https://www.environimagine.com/spectrometerv080.html). At time of writing this post in February 2024, [xspectrolum<b>+</b>](https://www.environimagine.com/spectrometerv080.html) can carry any of the following spectral sensors:
 
 - [Hamamatsu C12880MA (288 band VIS grating sensor)](https://www.hamamatsu.com/jp/en/product/type/C12880MA/index.html)
 - [Hamamatsu C14384MA-01 (192 band NIR grating sensors)](https://www.hamamatsu.com/eu/en/product/optical-sensors/spectrometers/mini-spectrometer/C14384MA-01.html)
@@ -33,21 +33,22 @@ The purpose of the sensors schema is to allow defining any spectral sensor that 
 - [AMS OSRAM AS7343 (14 bands filter sensor)](https://ams.com/AS7343)
 - [AMS OSRAM AS7421 (64-bands filter sensor)](https://ams.com/as7421)
 
-To accommodate the flexibility of allowing definition of all of the above, the sensors schema is divided into 8 separate table. Three of the tables are supporting lists:
+To accommodate the flexibility of allowing definition of all of the above, the **sensors** schema is divided into 7 separate table. Two of the tables are supporting lists:
 
-- public.technology (list of technologies used for separating the light signal),
-- support.spectrum (list of abbreviation/codes used for defining overall wavelength ranges), and
+- public.technology (list of technologies used for separating the light signal in the spectral sensors), and
 - public.sensorinfourl (extended information and url links for each sensor model).
+
+The table _support.spectrum_ belongs to the **support** schema and is a list of abbreviation/codes used for defining overall wavelength ranges.
 
 The remaining 5 tables include:
 
-- public.sensormodels (containing each sensor model used in the xspectrolum<b>+</b>)
-- public.sensors (itemises each individual copy of the _sensormodels_ as mounted in actual spectrometers),
+- public.sensormodel (containing each sensor model used in the xspectrolum<b>+</b>)
+- public.sensors (itemises each individual copy of the _sensormodel_ as mounted in actual spectrometers),
 - public.gratingsensors (individual characteristics of each mounted grating sensor),
 - public.hamamatuscalibration (calibration parameters for the Hamamatsu 5-degree polynomial used for calibration of each individual Hamamatsu grating and MEMS-FPI sensor)
-- public.filtersensors (individual band wavelegnth [wl] center and full width at half maximum [fwhm] for filter based sensors).
+- public.filtersensor (individual band wavelength [wl] center and full width at half maximum [fwhm] for filter based sensors).
 
-The key used for linking spectral sensors to a spectrometer is the field _sensoruuid_, where uuid is an abbreviation for _Universally Unique Identifier_. A uuid is composed of 36 characters (128-bit). The _sensoruuid_ is automatically generated with each sensor registration, The same uuid is also given to the spectrometer carrying the sensor and registered in the memory of the microproessor of that sensor.
+The key used for linking spectral sensors to a spectrometer is the field _sensoruuid_, where uuid is an abbreviation for _Universally Unique Identifier_. The _sensoruuid_ is automatically generated with each sensor registration, The same uuid is also given to the spectrometer carrying the sensor and registered in the memory of the microprocessor of that sensor.
 
 ### Illustration of the sensors schema
 
@@ -70,12 +71,12 @@ Project project_name {
   Note: 'Schema for spectral sensors'
 }
 
-Table sensormodels {
+Table sensormodel {
   sensorid varchar(36) [primary key]
   source varchar(32)
   product varchar(32)
-  model varchar(24)
-  maxdn smallint [NOT NULL]
+  model varchar(32)
+  dn_max smallint [NOT NULL]
   bands smallint [NOT NULL]
   spectrum varchar(16)
   technology varchar(16)
@@ -84,33 +85,34 @@ Table sensormodels {
 
 Table sensorinfourl {
  sensorid varchar(36) [primary key]
- info varchar (255)
+ info TEXT
  url TEXT
 }
 
-Table sensors {
+Table sensor {
   sensorid varchar(36)
-  sensoruuid char(36) [primary key]
+  sensoruuid UUID [primary key]
   serialnr varchar(16)
 }
 
-Table filtersensors [headercolor: #3498DB] {
-  sensoruuid char(36) [primary key]
+Table filtersensor [headercolor: #3498DB] {
+  sensoruuid UUID [primary key]
   wl real[] [NOT NULL]
   fwhm real[] [NOT NULL]
 }
 
-Table gratingsensors {
-  sensoruuid char(36) [primary key]
-  startpixel int
-  endpixel int
-  minwl real [NOT NULL]
-  maxwl real [NOT NULL]
-  fwhm real [NOT NULL]
+Table gratingsensor {
+  sensoruuid UUID [primary key]
+  beginpixel smallint
+  endpixel smallint
+  maxpixel smallint
+  minwl real
+  maxwl real
+  fwhm real
 }
 
 Table hamamatsucalibration {
-  sensoruuid char(36) [primary key]
+  sensoruuid UUID [primary key]
   a0 double
   b1 double
   b2 double
@@ -129,13 +131,13 @@ Table support.spectrum {
   info TEXT
 }
 
-Ref: sensormodels.sensorid - sensorinfourl.sensorid
-Ref: sensors.sensoruuid - filtersensors.sensoruuid
-Ref: sensors.sensoruuid - gratingsensors.sensoruuid
-Ref: gratingsensors.sensoruuid - hamamatsucalibration.sensoruuid
-Ref: sensors.sensorid > sensormodels.sensorid
-Ref: sensormodels.technology - technology.technology
-Ref: sensormodels.spectrum - support.spectrum.spectrum
+Ref: sensormodel.sensorid - sensorinfourl.sensorid
+Ref: sensor.sensoruuid - filtersensor.sensoruuid
+Ref: sensor.sensoruuid - gratingsensor.sensoruuid
+Ref: gratingsensor.sensoruuid - hamamatsucalibration.sensoruuid
+Ref: sensor.sensorid > sensormodel.sensorid
+Ref: sensormodel.technology - technology.technology
+Ref: sensormodel.spectrum - support.spectrum.spectrum
 ```
 
 ## xspeclib code
@@ -152,13 +154,13 @@ The xspeclib code can be called by a customised Python script for automatically 
       "parameters": {
         "db": "speclib",
         "schema": "sensors",
-        "table": "sensormodels",
+        "table": "sensormodel",
         "command": [
           "sensorid varchar(36)",
           "source varchar(32)",
           "product varchar(32)",
-          "model varchar(24)",
-          "maxdn smallint NOT NULL",
+          "model varchar(32)",
+          "dn_max smallint NOT NULL",
           "bands smallint NOT NULL",
           "spectrum varchar(16)",
           "technology varchar(16)",
@@ -177,7 +179,7 @@ The xspeclib code can be called by a customised Python script for automatically 
         "table": "sensorinfourl",
         "command": [
           "sensorid varchar(36)",
-          "info varchar(255)",
+          "info TEXT",
           "url TEXT",
           "PRIMARY KEY (sensorid)"
         ]
@@ -190,10 +192,10 @@ The xspeclib code can be called by a customised Python script for automatically 
       "parameters": {
         "db": "speclib",
         "schema": "sensors",
-        "table": "sensors",
+        "table": "sensor",
         "command": [
           "sensorid varchar(36)",
-          "sensoruuid char(36)",
+          "sensoruuid UUID",
           "serialnr varchar(16)",
           "PRIMARY KEY (sensoruuid)"
         ]
@@ -206,9 +208,9 @@ The xspeclib code can be called by a customised Python script for automatically 
       "parameters": {
         "db": "speclib",
         "schema": "sensors",
-        "table": "filtersensors",
+        "table": "filtersensor",
         "command": [
-          "sensoruuid char(36)",
+          "sensoruuid UUID",
           "wl real[]",
           "fwhm real[]",
           "PRIMARY KEY (sensoruuid)"
@@ -222,11 +224,12 @@ The xspeclib code can be called by a customised Python script for automatically 
       "parameters": {
         "db": "speclib",
         "schema": "sensors",
-        "table": "gratingsensors",
+        "table": "gratingsensor",
         "command": [
-          "sensoruuid char(36)",
-          "startpixel smallint",
+          "sensoruuid UUID",
+          "beginpixel smallint",
           "endpixel smallint",
+          "maxpixel smallint",
           "minwl real[]",
           "maxwl real[]",
           "fwhm real[]",
@@ -243,13 +246,13 @@ The xspeclib code can be called by a customised Python script for automatically 
         "schema": "sensors",
         "table": "hamamatsucalibration",
         "command": [
-          "sensoruuid char(36)",
-          "a0 double DEFAULT 0",
-          "b1 double DEFAULT 0",
-          "b2 double DEFAULT 0",
-          "b3 double DEFAULT 0",
-          "b4 double DEFAULT 0",
-          "b5 double DEFAULT 0",
+          "sensoruuid UUID",
+          "a0 double precision DEFAULT 0",
+          "b1 double precision DEFAULT 0",
+          "b2 double precision DEFAULT 0",
+          "b3 double precision DEFAULT 0",
+          "b4 double precision DEFAULT 0",
+          "b5 double precision DEFAULT 0",
           "PRIMARY KEY (sensoruuid)"
         ]
       }
@@ -263,7 +266,7 @@ The xspeclib code can be called by a customised Python script for automatically 
         "schema": "sensors",
         "table": "technology",
         "command": [
-          "technology varchar(32)",
+          "technology varchar(16)",
           "info TEXT",
           "PRIMARY KEY (technology)"
         ]

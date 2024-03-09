@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Samples schema
+title: Schema samples
 categories: libspec-db
 excerpt: "Design and setup for schema samples, xspectre postgreSQL spectral library"
 tags:
@@ -22,13 +22,15 @@ This post contains the general design of the schema **samples** for the xspectre
 
 ## Purpose of the spectrometers schema
 
-The purpose of the **samples** schema is to keep track of all specimens that are scanned, whether the scanning is done with a spectral sensor or a probe. All samples that are saved in the database must be linked to a campaign. That link will also define the user (owner), type of sensor, muzzle and probe(s) used in the scanning. But because each campaign can use any instance of the particular models defined also the uuids of the individual sensor, muzzle and probe(s) is saved with each sample. Then of course every sample is given a name and a title. The generic definition of a sample then uses four taxonomic levels: family, species, brand and version. These levels can be interpreted with flexibility as long as they are consistently applied within the same campaign.
+The purpose of the **samples** schema is to keep track of all specimens that are scanned, whether the scanning is done with a spectral sensor or a probe. All samples that are saved in the database must be linked to a campaign. That link will also define the user (owner), type of sensor, muzzle and probe(s) used in the scanning. Apart from the owner, also a sampler (person that collected the sample) can be given. if left as NULL the owner will be registered as the sample.
+
+Because each campaign can use any instance of the particular models defined, the uuids of the individual sensor, muzzle and probe(s) is saved with each sample. Then of course every sample is given a name and a title. The generic definition of a sample then uses four taxonomic levels: family, species, brand and version. These levels can be interpreted with flexibility as long as they are consistently applied within the same campaign.
 
 If the campaign is a timeseries the ordinal range of the sample is automatically added; if the campaign is geographic the longitude and latitude must be added; if the campaign is a profile, the relative profile position (e.g. depth) must be given.
 
 To improve the visualisation when exploring and analysing the spectra and probe properties, and any properties estimated from these data, each specimen can be given a customised symbolisation to be used in graphical presentations.
 
-To store samples in the databases and retain the outlined information, the schema **samples** contains 5 tables. The table public.sampleifourl is a list that links  extended and external information to a sample. The remaining 4 tables include:
+To store samples in the databases and retain the outlined information, the schema **samples** contains 5 tables. The table _public.sampleinfourl_ is a list that links extended and external information to a sample. The remaining 4 tables include:
 
 - public.sample (sample metadata and campaign to which sample belongs)
 - public.samplesymbol (the symbol to use fore representing the sample graphically)
@@ -56,18 +58,19 @@ Project project_name {
   Note: 'Schema for sample library'
 }
 
-Table campaign.campaign {
-  campaignuuid char(36) [pk]
+Table campaigns.campaign {
+  campaignuuid UUID [pk]
   morecolumns char(1)
 }
 
 Table sample {
- sampleuuid char(36)
+ sampleuuid UUID
+ sampleruuid UUID
  sampledatetime timestamp [pk]
- campaignuuid char(36) [pk]
+ campaignuuid UUID [pk]
  samplename varchar(32) [pk]
  sampleabbr varchar(16)
- samplelabel varchar(32)
+ samplelabel varchar(128)
  family varchar(32)
  species varchar(32)
  brand varchar(32)
@@ -75,39 +78,39 @@ Table sample {
 }
 
 Table samplelocation {
- sampleuuid char(36) [pk]
+ sampleuuid UUID [pk]
  longitude double
  latitude double
- mindepth float
- maxdepth float
+ cm_mindepth float
+ cm_maxdepth float
 }
 
 Table sampleinfourl {
- sampleuuid char(36) [pk]
- info varchar (255)
+ sampleuuid UUID [pk]
+ info TEXT
  url TEXT
 }
 
 Table samplesymbol {
- sampleuuid char(36) [pk]
+ sampleuuid UUID [pk]
  samplesymbolid varchar(36)
  label varchar(32)
  color varchar(16)
  size smallint
 }
 
-Table symbols {
+Table symbol {
  samplesymbolid varchar(36) [pk]
  defaultsymbol varchar(32)
  customsymbol TEXT
  symbolfile TEXT
 }
 
-Ref: campaign.campaign.campaignuuid < sample.campaignuuid
+Ref: campaigns.campaign.campaignuuid < sample.campaignuuid
 Ref: sample.sampleuuid - sampleinfourl.sampleuuid
 Ref: sample.sampleuuid - samplelocation.sampleuuid
 Ref: sample.sampleuuid - samplesymbol.sampleuuid
-Ref: samplesymbol.samplesymbolid - symbols.samplesymbolid
+Ref: samplesymbol.samplesymbolid - symbol.samplesymbolid
 ```
 
 ## xspeclib code
@@ -124,12 +127,13 @@ The xspeclib code can be called by a customised Python script for automatically 
       "delete": false,
       "parameters": {
         "db": "speclib",
-        "schema": "sample",
+        "schema": "samples",
         "table": "sample",
         "command": [
-          "sampleuuid char(36)",
+          "sampleuuid UUID",
+          "sampleruuid UUID",
           "sampledatetime timestamp",
-          "campaignuuid char(36)",
+          "campaignuuid UUID",
           "samplename varchar(32)",
           "sampleabbr varchar(16)",
           "samplelabel varchar(32)",
@@ -147,14 +151,14 @@ The xspeclib code can be called by a customised Python script for automatically 
       "delete": false,
       "parameters": {
         "db": "speclib",
-        "schema": "sample",
+        "schema": "samples",
         "table": "samplelocation",
         "command": [
-          "sampleuuid char(36)",
-          "longitude double",
-          "latitude double",
-          "mindepth float",
-          "maxdepth float",
+          "sampleuuid UUID",
+          "longitude double precision",
+          "latitude double precision",
+          "cm_mindepth real",
+          "cm_maxdepth real",
           "PRIMARY KEY (sampleuuid)"
         ]
       }
@@ -165,11 +169,11 @@ The xspeclib code can be called by a customised Python script for automatically 
       "delete": false,
       "parameters": {
         "db": "speclib",
-        "schema": "sample",
+        "schema": "samples",
         "table": "sampleinfourl",
         "command": [
-          "sampleuuid char(36)",
-          "info varchar(255)",
+          "sampleuuid UUID",
+          "info TEXT",
           "url TEXT",
           "PRIMARY KEY (sampleuuid)"
         ]
@@ -181,10 +185,10 @@ The xspeclib code can be called by a customised Python script for automatically 
       "delete": false,
       "parameters": {
         "db": "speclib",
-        "schema": "sample",
+        "schema": "samples",
         "table": "samplesymbol",
         "command": [
-          "sampleuuid char(36)",
+          "sampleuuid UUID",
           "samplesymbolid varchar(36)",
           "label varchar(32)",
           "color varchar(16)",
@@ -200,7 +204,7 @@ The xspeclib code can be called by a customised Python script for automatically 
       "parameters": {
         "db": "speclib",
         "schema": "samples",
-        "table": "symbols",
+        "table": "symbol",
         "command": [
           "samplesymbolid varchar(36)",
           "defaultsymbol varchar(32)",

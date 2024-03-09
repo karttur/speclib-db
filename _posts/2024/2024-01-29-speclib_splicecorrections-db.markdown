@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Model preprocessing schema
+title: Splicecorrection schema
 categories: libspec-db-todo
 excerpt: "Design and setup for schema model splicing, xspectre postgreSQL spectral library"
 tags:
@@ -16,41 +16,20 @@ share: true
 
 ## Introduction
 
-In the xSpectre database the spectral data pre-processing steps to apply for any particular analysis or modelling are stored in the table **modelpreprocessing**.
 
-This post contains the general design of the schema **modelpreprocessing** for the xspectre scan library postgreSQL database. The design is written in the [Database Markup Language (DBML)](https://dbml.dbdiagram.io/home/). For visualisation of the DBML code I have used the semi free tool [dbdiagram](https://dbdiagram.io/?utm_source=dbml).
+This post contains the general design of the schema **splicecorrection** for the xspectre scan library postgreSQL database. The design is written in the [Database Markup Language (DBML)](https://dbml.dbdiagram.io/home/). For visualisation of the DBML code I have used the semi free tool [dbdiagram](https://dbdiagram.io/?utm_source=dbml).
 
 ## Purpose of the scan schema
 
-The purpose of the **splicecorrection** schema is to store the combination of pre-processing steps defined for all data analysis and modeling. The principal pre-processing methods include:
+The purpose of the **splicecorrection** schema is ...
 
 
 
 ### splicecorrection
 
-Data transformations implemented in the xspectre modeling environment include:
-
-- logarithmic transformation
-- square root transformation
-- inversion
-- yeo-johnson transformation
-
-Of the above transfroamtions, only the yeo-johnson requires parameterisation; this parameter is saved in the datatarform table for models applying the yeo-johnson transformation.
-
-### scattercorrection
-
-TO BE ADDED
-
-### meancentring
-
-TO BE ADDED
-
-### Splicecorrection
 
 
-
-
-### Illustration of the model pre-processing schema
+### Illustration of the splicecorrection schema
 
 Mouse click on the figure to get a larger illustration in a pop-up window.
 
@@ -72,14 +51,14 @@ Project project_name {
 }
 
 Table modelsplicercorrection {
-  splicecorrectionuuid char(36)
-  srccampaignuuid char(36)
-  dstcampaignuuid char(36)
-  srcsensoruuid char(36) [pk]
-  srcmuzzleuuid char(36) [pk]
-  dstsensoruuid char(36) [pk]
-  dstmuzzleuuid char(36) [pk]
-  dstmodeluuid char(36) [pk]
+  splicecorrectionuuid UUID
+  srccampaignuuid UUID
+  dstcampaignuuid UUID
+  srcsensoruuid UUID [pk]
+  srcmuzzleuuid UUID [pk]
+  dstsensoruuid UUID [pk]
+  dstmuzzleuuid UUID [pk]
+  dstmodeluuid UUID [pk]
   registerkey varchar(16) [pk]
   targetregistervalue real
   auxiliarykey
@@ -87,9 +66,9 @@ Table modelsplicercorrection {
 }
 
 Table splicecorrection {
-  campaignuuid char(36) [pk]
-  modeluuid char(36) [pk]
-  splicecorrectionuuid char(36) [pk]
+  campaignuuid UUID [pk]
+  modeluuid UUID [pk]
+  splicecorrectionuuid UUID [pk]
 }
 ```
 
@@ -141,7 +120,7 @@ The xspeclib code can be called by a customised Python script for automatically 
         "schema": "modelpreprocess",
         "table": "datatransform",
         "command": [
-          "modeluuid char(36)"
+          "modeluuid UUID"
           "datatransformcode char(2)",
           "lambda real"
           "PRIMARY KEY (modeluuid)"
@@ -158,7 +137,7 @@ The xspeclib code can be called by a customised Python script for automatically 
         "schema": "modelpreprocess",
         "table": "scattercorrection",
         "command": [
-          "modeluuid char(36)"
+          "modeluuid UUID"
           "scattercorrection varchar(32)",
           "PRIMARY KEY (modeluuid)"
         ]
@@ -174,7 +153,7 @@ The xspeclib code can be called by a customised Python script for automatically 
         "schema": "modelpreprocess",
         "table": "meancentring",
         "command": [
-          "modeluuid char(36)"
+          "modeluuid UUID"
           "meancentring varchar(32)",
           "PRIMARY KEY (modeluuid)"
         ]
@@ -190,7 +169,7 @@ The xspeclib code can be called by a customised Python script for automatically 
         "schema": "modelpreprocess",
         "table": "meancentring",
         "command": [
-          "modeluuid char(36)"
+          "modeluuid UUID"
           "meancentring varchar(32)",
           "PRIMARY KEY (modeluuid)"
         ]

@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Campaign schema
+title: Schema campaigns
 categories: libspec-db
 excerpt: "Design and setup for schema campaigns, xspectre postgreSQL spectral library"
 tags:
@@ -16,15 +16,15 @@ share: true
 
 ## Introduction
 
-Observations obtained with xSpectre´s [xspectrolum<b>+</b>](https://www.environimagine.com/spectrometerv080.html) spectrometer are generally, but not obligatory, associated with a _campaign_. A _campaign_ usually focuses on a particular substance, like soil, fabric, paper, wine, grain; almost any substance can be the focus of a campaign.
+Observations obtained with xSpectre´s [xspectrolum<b>+</b>](https://www.environimagine.com/spectrometerv080.html) spectrometer must be associated with a _campaign_. A _campaign_ usually focuses on a particular substance, like soil, fabric, paper, wine, grain; almost any substance can be the focus of a campaign.
 
-A campaign is bound to a specific combination of a sensor model and a muzzle model. "Campaigns" for comparing the performance of different sensors and muzzles can be defined, but are more of development projects and not ordinary "campaigns".
+A campaign is generally bound to a specific combination of sensor and  muzzle models. "Campaigns" for comparing the performance of different sensors and muzzles can be defined, but are more of development projects and not ordinary "campaigns".
 
 This post contains the general design of the schema **campaigns** for the xspectre spectral library and processing system postgreSQL database. The design is written in the [Database Markup Language (DBML)](https://dbml.dbdiagram.io/home/). For visualisation of the DBML code I have used the semi free tool [dbdiagram](https://dbdiagram.io/?utm_source=dbml).
 
 ## Purpose of the campaigns schema
 
-The purpose of the campaigns schema is to define specific observation tasks centering on a defined substance. A campaign is usually started with the aim of  building a spectral database for a particular task - like determining the quality of Swedish soils. A campaign is bound to a specific combination of a sensor model (_spectrometermodel_) and a muzzle model (_muzzlemodel_). The campaign can, however apply two, or more, setups (_spectromuzzles_), as long as they have identical sensorid and muzzleid (but varying (uuids). The actual sensor+muzzle(+probe) used for scanning a sample is registered with each scan; in the [**scan**](../speclib_campaign_scan-db) schema.
+The purpose of the **campaigns** schema is to define specific observation tasks centering on a defined substance. A campaign is usually started with the aim of  building a spectral database for a particular task - like determining the quality of Swedish soils. A campaign is bound to a specific combination of a sensor model (_spectrometermodel_) and a muzzle model (_muzzlemodel_). The campaign can, however apply two, or more, setups (_spectromuzzle_), as long as they have identical sensorid and muzzleid (but varying (uuids). The actual sensor+muzzle(+probe) used for scanning a sample is registered with each scan; in the [**scans**](../speclib_campaign_scan-db) schema.
 
 Apart from the sensorid and muzzleid, _campaign_ attributes include owner, title, label, substance under study etc. A campaign can also have the following boolean dimensions:
 
@@ -43,8 +43,8 @@ are supporting lists:
 The remaining 3 tables include:
 
 - public.campaign (general campaign attribute data),
-- public.campaignsensor (definition of the campaign sensor and muzzle combination),
-- public.campaignprobes (list of probe models applied).
+- public.campaignsensor (definition of the campaign sensor and muzzle combination(s)),
+- public.campaignprobe (list of probe models applied).
 
 ### Further development
 
@@ -57,13 +57,12 @@ Campaigns should also have extended status regarding model readiness, ownership,
 Mouse click on the figure to get a larger illustration in a pop-up window.
 
 <figure>
-<a href="../../images/DBML_schema-campaign.png">
-<img src="../../images/DBML_schema-campaign.png"></a>
-<figcaption>Campaign DBML database structure</figcaption>
+<a href="../../images/DBML_schema-campaigns.png">
+<img src="../../images/DBML_schema-campaigns.png"></a>
+<figcaption>Campaigns DBML database structure</figcaption>
 </figure>
 
 ### DBML Code
-
 
 ```
 // Use DBML to define your database structure
@@ -75,14 +74,13 @@ Project project_name {
 }
 
 Table campaign {
- useruuid char(36) [pk]
+ useruuid UUID [pk]
  campaignid varchar(32) [pk]
- campaignuuid char(36)
+ campaignuuid UUID
  campaigntitle varchar(64)
- campaignlabel varchar(32)
+ campaignlabel varchar(128)
  version varchar(8)
  substance varchar(24)
- scanstate varchar(8)
  timeseries boolean
  geographic boolean
  profile boolean
@@ -96,51 +94,51 @@ Table campaignsensor {
   muzzleid varchar(36)
 }
 
-Table campaignprobes {
+Table campaignprobe {
  campaignuuid varchar(36) [pk]
  probeid varchar(36) [pk]
  required boolean
 }
 
 Table campaigngeoregion {
- campaignuuid char(36) [pk]
+ campaignuuid UUID [pk]
  georegion varchar(64)
 }
 
 Table campaigninfourl {
- campaignuuid char(36) [pk]
- info varchar (255)
+ campaignuuid UUID [pk]
+ info TEXT
  url TEXT
 }
 
-Table users.users {
-  useruuid char(36) [pk]
+Table users.user {
+  useruuid UUID [pk]
   morecolumns char(1)
 }
 
-Table sensors.sensormodels {
+Table sensors.sensormodel {
   sensorid varchar(36) [pk]
   morecolumns char(1)
 }
 
-Table muzzles.muzzlemodels {
+Table muzzles.muzzlemodel {
   muzzleid varchar(36) [pk]
   morecolumns char(1)
 }
 
-Table probes.probemodels {
+Table probes.probemodel {
   probeid varchar(36) [pk]
   morecolumns char(1)
 }
 
 Ref: campaign.campaignuuid - campaigngeoregion.campaignuuid
 Ref: campaign.campaignuuid - campaigninfourl.campaignuuid
-Ref: campaign.useruuid - users.users.useruuid
+Ref: campaign.useruuid - users.user.useruuid
 Ref: campaign.campaignuuid - campaignsensor.campaignuuid
-Ref: campaign.campaignuuid < campaignprobes.campaignuuid
-Ref: campaignsensor.sensorid - sensors.sensormodels.sensorid
-Ref: campaignsensor.muzzleid - muzzles.muzzlemodels.muzzleid
-Ref: campaignprobes.probeid - probes.probemodels.probeid
+Ref: campaign.campaignuuid < campaignprobe.campaignuuid
+Ref: campaignsensor.sensorid - sensors.sensormodel.sensorid
+Ref: campaignsensor.muzzleid - muzzles.muzzlemodel.muzzleid
+Ref: campaignprobe.probeid - probes.probemodel.probeid
 ```
 
 ## xspeclib code
@@ -160,14 +158,13 @@ The xspeclib code can be called by a customised Python script for automatically 
         "schema": "campaigns",
         "table": "campaign",
         "command": [
-          "useruuid char(36)",
+          "useruuid UUID",
           "campaignid varchar(32)",
-          "campaignuuid char(36)",
+          "campaignuuid UUID",
           "campaigntitle varchar(64)",
-          "campaignlabel varchar(32)",
+          "campaignlabel varchar(128)",
           "version varchar(8)",
           "substance varchar(24)",
-          "scanstate varchar(8)",
           "timeseries boolean",
           "geographic boolean",
           "profile boolean",
@@ -200,7 +197,7 @@ The xspeclib code can be called by a customised Python script for automatically 
       "parameters": {
         "db": "speclib",
         "schema": "campaigns",
-        "table": "campaignprobes",
+        "table": "campaignprobe",
         "command": [
           "campaignuuid varchar(36)",
           "probeid varchar(36)",
@@ -209,26 +206,6 @@ The xspeclib code can be called by a customised Python script for automatically 
         ]
       }
     },
-
-    {
-      "processid": "createtable",
-      "overwrite": false,
-      "delete": false,
-      "parameters": {
-        "db": "speclib",
-        "schema": "campaigns",
-        "table": "spectrascansettings",
-        "command": [
-          "campaignuuid varchar(36)",
-          "prescans",
-          "warmup",
-          "etc???"
-          "PRIMARY KEY (campaignuuid)"
-        ]
-      }
-    },
-
-
     {
       "processid": "createtable",
       "overwrite": false,
@@ -239,7 +216,7 @@ The xspeclib code can be called by a customised Python script for automatically 
         "table": "campaigngeoregion",
         "command": [
           "campaignuuid varchar(36)",
-          "georegion varchar(36)",
+          "georegion varchar(64)",
           "PRIMARY KEY (campaignuuid)"
         ]
       }
@@ -254,7 +231,7 @@ The xspeclib code can be called by a customised Python script for automatically 
         "table": "campaigninfourl",
         "command": [
           "campaignuuid varchar(36)",
-          "info varchar(255)",
+          "info TEXT",
           "url TEXT",
           "PRIMARY KEY (campaignuuid)"
         ]
